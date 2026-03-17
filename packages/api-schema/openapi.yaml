@@ -1,0 +1,374 @@
+openapi: 3.0.3
+info:
+  title: Konbini Navi API
+  version: 1.0.0
+  description: コンビニ食事管理アプリAPI
+
+servers:
+  - url: https://api.example.com/v1
+    description: Production
+  - url: http://localhost:8080/v1
+    description: Local development
+
+paths:
+  /products:
+    get:
+      operationId: searchProducts
+      summary: 商品検索
+      tags: [products]
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: キーワード検索
+        - name: brand
+          in: query
+          schema:
+            $ref: "#/components/schemas/Brand"
+        - name: category
+          in: query
+          schema:
+            $ref: "#/components/schemas/Category"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        "200":
+          description: 商品一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [products]
+                properties:
+                  products:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Product"
+
+  /products/{productId}:
+    get:
+      operationId: getProduct
+      summary: 商品詳細
+      tags: [products]
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 商品詳細
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: 商品が見つかりません
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /users/{userId}/records:
+    get:
+      operationId: listRecords
+      summary: 食事記録一覧
+      tags: [records]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: "YYYY-MM-DD形式"
+      responses:
+        "200":
+          description: 食事記録一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [records]
+                properties:
+                  records:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Record"
+
+    post:
+      operationId: createRecord
+      summary: 食事記録作成
+      tags: [records]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRecordRequest"
+      responses:
+        "201":
+          description: 食事記録作成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Record"
+        "400":
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /users/{userId}/records/{recordId}:
+    delete:
+      operationId: deleteRecord
+      summary: 食事記録削除
+      tags: [records]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: 削除成功
+        "404":
+          description: 記録が見つかりません
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /users/{userId}/nutrition:
+    get:
+      operationId: getNutrition
+      summary: 栄養バランス取得
+      tags: [nutrition]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: 栄養バランス
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NutritionSummary"
+
+  /users/{userId}/recommendations:
+    get:
+      operationId: getRecommendations
+      summary: おすすめ商品取得
+      tags: [recommendations]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: おすすめ商品一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [recommendations]
+                properties:
+                  recommendations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Recommendation"
+
+components:
+  schemas:
+    Brand:
+      type: string
+      enum: [seven_eleven, family_mart, lawson]
+      description: コンビニブランド
+
+    Category:
+      type: string
+      enum: [onigiri, bento, sandwich, salad, soup, noodle, bread, sweets, drink, side_dish]
+      description: 商品カテゴリ
+
+    MealType:
+      type: string
+      enum: [breakfast, lunch, dinner, snack]
+      description: 食事タイプ
+
+    NutritionStatus:
+      type: string
+      enum: [deficient, adequate, excessive]
+      description: "不足/適量/多い"
+
+    Nutrition:
+      type: object
+      required: [calories, protein, fat, carbs]
+      properties:
+        calories:
+          type: number
+          description: カロリー(kcal)
+        protein:
+          type: number
+          description: タンパク質(g)
+        fat:
+          type: number
+          description: 脂質(g)
+        carbs:
+          type: number
+          description: 炭水化物(g)
+        fiber:
+          type: number
+          description: 食物繊維(g)
+        salt:
+          type: number
+          description: 食塩相当量(g)
+
+    Product:
+      type: object
+      required: [productId, name, brand, category, price, nutrition, imageUrl]
+      properties:
+        productId:
+          type: string
+        name:
+          type: string
+        brand:
+          $ref: "#/components/schemas/Brand"
+        category:
+          $ref: "#/components/schemas/Category"
+        price:
+          type: integer
+          description: 税込価格(円)
+        nutrition:
+          $ref: "#/components/schemas/Nutrition"
+        imageUrl:
+          type: string
+        description:
+          type: string
+
+    Record:
+      type: object
+      required: [recordId, userId, productId, product, date, mealType, createdAt]
+      properties:
+        recordId:
+          type: string
+        userId:
+          type: string
+        productId:
+          type: string
+        product:
+          $ref: "#/components/schemas/Product"
+        date:
+          type: string
+          format: date
+        mealType:
+          $ref: "#/components/schemas/MealType"
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateRecordRequest:
+      type: object
+      required: [productId, date, mealType]
+      properties:
+        productId:
+          type: string
+        date:
+          type: string
+          format: date
+        mealType:
+          $ref: "#/components/schemas/MealType"
+
+    NutrientStatus:
+      type: object
+      required: [actual, target, status]
+      properties:
+        actual:
+          type: number
+        target:
+          type: number
+        ratio:
+          type: number
+          description: actual / target
+        status:
+          $ref: "#/components/schemas/NutritionStatus"
+
+    NutritionSummary:
+      type: object
+      required: [date, calories, protein, fat, carbs]
+      properties:
+        date:
+          type: string
+          format: date
+        calories:
+          $ref: "#/components/schemas/NutrientStatus"
+        protein:
+          $ref: "#/components/schemas/NutrientStatus"
+        fat:
+          $ref: "#/components/schemas/NutrientStatus"
+        carbs:
+          $ref: "#/components/schemas/NutrientStatus"
+
+    Recommendation:
+      type: object
+      required: [product, reason, deficientNutrients]
+      properties:
+        product:
+          $ref: "#/components/schemas/Product"
+        reason:
+          type: string
+          description: おすすめ理由
+        deficientNutrients:
+          type: array
+          items:
+            type: string
+          description: 補える不足栄養素
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
