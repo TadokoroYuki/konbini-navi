@@ -6,6 +6,7 @@ dist/
 
 # Go
 apps/api/bin/
+apps/api/api
 
 # CDK
 infra/cdk.out/

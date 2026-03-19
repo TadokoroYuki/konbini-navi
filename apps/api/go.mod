@@ -10,6 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.38.1
 	github.com/go-chi/chi/v5 v5.2.0
 	github.com/go-chi/cors v1.2.1
+	github.com/lib/pq v1.10.9
 	github.com/oklog/ulid/v2 v2.1.0
 )
 
