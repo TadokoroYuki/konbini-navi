@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -11,7 +12,12 @@ import (
 	"github.com/TadokoroYuki/konbini-navi/apps/api/internal/model"
 )
 
-const recordsTable = "Records"
+func getRecordsTable() string {
+	if t := os.Getenv("RECORDS_TABLE"); t != "" {
+		return t
+	}
+	return "konbini-records"
+}
 
 // DynamoRecordRepository implements RecordRepository using DynamoDB.
 type DynamoRecordRepository struct {
@@ -41,7 +47,7 @@ func (r *DynamoRecordRepository) ListByUserAndDate(ctx context.Context, userId s
 	}
 
 	result, err := r.client.Query(ctx, &dynamodb.QueryInput{
-		TableName:                 aws.String(recordsTable),
+		TableName:                 aws.String(getRecordsTable()),
 		KeyConditionExpression:    aws.String(keyCondition),
 		ExpressionAttributeValues: exprAttrValues,
 	})
@@ -78,7 +84,7 @@ func (r *DynamoRecordRepository) Create(ctx context.Context, record *model.Recor
 	}
 
 	_, err = r.client.PutItem(ctx, &dynamodb.PutItemInput{
-		TableName: aws.String(recordsTable),
+		TableName: aws.String(getRecordsTable()),
 		Item:      item,
 	})
 	return err
@@ -89,7 +95,7 @@ func (r *DynamoRecordRepository) Delete(ctx context.Context, userId string, reco
 	// We need to find the record first to get the SK
 	// Query by userId and filter by recordId
 	result, err := r.client.Query(ctx, &dynamodb.QueryInput{
-		TableName:                 aws.String(recordsTable),
+		TableName:                 aws.String(getRecordsTable()),
 		KeyConditionExpression:    aws.String("userId = :userId"),
 		FilterExpression:          aws.String("recordId = :recordId"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -111,7 +117,7 @@ func (r *DynamoRecordRepository) Delete(ctx context.Context, userId string, reco
 		return nil
 	}
 	_, err = r.client.DeleteItem(ctx, &dynamodb.DeleteItemInput{
-		TableName: aws.String(recordsTable),
+		TableName: aws.String(getRecordsTable()),
 		Key: map[string]types.AttributeValue{
 			"userId": &types.AttributeValueMemberS{Value: userId},
 			"SK":     skAttr,

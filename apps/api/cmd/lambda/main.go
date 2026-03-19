@@ -21,12 +21,21 @@ func main() {
 	// Initialize DynamoDB client
 	var dynamoClient *dynamodb.Client
 
-	cfg, err := config.LoadDefaultConfig(context.Background())
+	cfg, err := config.LoadDefaultConfig(context.Background(),
+		config.WithRegion("ap-northeast-1"),
+	)
 	if err != nil {
 		log.Printf("WARNING: Failed to load AWS config: %v", err)
 		log.Println("Starting without DynamoDB connection")
 	} else {
-		dynamoClient = dynamodb.NewFromConfig(cfg)
+		if endpoint := os.Getenv("DYNAMODB_ENDPOINT"); endpoint != "" {
+			dynamoClient = dynamodb.NewFromConfig(cfg, func(o *dynamodb.Options) {
+				o.BaseEndpoint = &endpoint
+			})
+			log.Printf("Using local DynamoDB at %s", endpoint)
+		} else {
+			dynamoClient = dynamodb.NewFromConfig(cfg)
+		}
 	}
 
 	// Initialize repositories

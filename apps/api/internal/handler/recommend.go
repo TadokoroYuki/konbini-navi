@@ -34,5 +34,5 @@ func (h *RecommendHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, recommendations)
+	writeJSON(w, http.StatusOK, map[string]interface{}{"recommendations": recommendations})
 }

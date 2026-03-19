@@ -38,7 +38,7 @@ func (h *RecordHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, records)
+	writeJSON(w, http.StatusOK, map[string]interface{}{"records": records})
 }
 
 // Create handles POST /v1/users/{userId}/records

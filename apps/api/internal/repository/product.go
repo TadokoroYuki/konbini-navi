@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -12,7 +13,12 @@ import (
 	"github.com/TadokoroYuki/konbini-navi/apps/api/internal/model"
 )
 
-const productsTable = "Products"
+func getProductsTable() string {
+	if t := os.Getenv("PRODUCTS_TABLE"); t != "" {
+		return t
+	}
+	return "konbini-products"
+}
 
 // DynamoProductRepository implements ProductRepository using DynamoDB.
 type DynamoProductRepository struct {
@@ -52,7 +58,7 @@ func (r *DynamoProductRepository) Search(ctx context.Context, query string, bran
 	}
 
 	input := &dynamodb.ScanInput{
-		TableName: aws.String(productsTable),
+		TableName: aws.String(getProductsTable()),
 		Limit:     aws.Int32(int32(limit)),
 	}
 
@@ -80,7 +86,7 @@ func (r *DynamoProductRepository) Search(ctx context.Context, query string, bran
 // GetByID retrieves a product by its ID.
 func (r *DynamoProductRepository) GetByID(ctx context.Context, productId string) (*model.Product, error) {
 	result, err := r.client.GetItem(ctx, &dynamodb.GetItemInput{
-		TableName: aws.String(productsTable),
+		TableName: aws.String(getProductsTable()),
 		Key: map[string]types.AttributeValue{
 			"productId": &types.AttributeValueMemberS{Value: productId},
 		},
