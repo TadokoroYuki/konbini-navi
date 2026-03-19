@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../hooks/useAuth";
 import { useNutrition } from "../hooks/useNutrition";
 import { listRecords, deleteRecord } from "../lib/api-client";
+import { addDays, getToday, parseDateString } from "../lib/date";
 import {
   MealRecord,
   MEAL_TYPE_LABELS,
@@ -22,7 +23,7 @@ import {
 } from "../lib/types";
 
 function formatDateStr(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
+  const d = parseDateString(dateStr);
   const year = d.getFullYear();
   const month = d.getMonth() + 1;
   const day = d.getDate();
@@ -31,15 +32,6 @@ function formatDateStr(dateStr: string): string {
   return `${year}年${month}月${day}日（${weekday}）`;
 }
 
-function addDays(dateStr: string, days: number): string {
-  const d = new Date(dateStr + "T00:00:00");
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split("T")[0];
-}
-
-function getToday(): string {
-  return new Date().toISOString().split("T")[0];
-}
 
 function getStatusColor(status: NutritionStatus): string {
   switch (status) {

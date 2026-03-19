@@ -8,18 +8,15 @@ import {
 } from "react-native";
 import { useAuth } from "../hooks/useAuth";
 import { useNutrition } from "../hooks/useNutrition";
+import { getToday, parseDateString } from "../lib/date";
 import {
   NutrientStatus,
   NutritionStatus,
   STATUS_LABELS,
 } from "../lib/types";
 
-function getToday(): string {
-  return new Date().toISOString().split("T")[0];
-}
-
 function formatDate(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
+  const d = parseDateString(dateStr);
   const year = d.getFullYear();
   const month = d.getMonth() + 1;
   const day = d.getDate();

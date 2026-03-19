@@ -4,8 +4,9 @@ import {
   NutritionSummary,
   Recommendation,
 } from "./types";
+import { getToday } from "./date";
 
-const today = new Date().toISOString().split("T")[0];
+const today = getToday();
 
 export const mockProducts: Product[] = [
   {

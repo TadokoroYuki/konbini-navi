@@ -10,6 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../hooks/useAuth";
 import { useNutrition } from "../hooks/useNutrition";
 import { getRecommendations } from "../lib/api-client";
+import { getToday } from "../lib/date";
 import {
   Recommendation,
   BRAND_LABELS,
@@ -17,10 +18,6 @@ import {
   NutritionStatus,
   STATUS_LABELS,
 } from "../lib/types";
-
-function getToday(): string {
-  return new Date().toISOString().split("T")[0];
-}
 
 function getStatusColor(status: NutritionStatus): string {
   switch (status) {

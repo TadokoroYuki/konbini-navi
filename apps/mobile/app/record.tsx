@@ -24,12 +24,9 @@ import {
   MEAL_TYPE_LABELS,
   BRAND_LABELS,
 } from "../lib/types";
+import { getToday } from "../lib/date";
 
 const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
-
-function getToday(): string {
-  return new Date().toISOString().split("T")[0];
-}
 
 export default function RecordScreen() {
   const { deviceId } = useAuth();
