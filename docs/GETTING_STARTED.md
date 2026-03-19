@@ -1,0 +1,86 @@
+# 環境構築手順
+
+## 前提条件
+
+- **Node.js** v22+
+- **pnpm** v10+
+- **Go** v1.22+
+- **AWS CLI** v2 (CDK deploy時に必要)
+- **Expo Go** アプリ (iOS/Android端末にインストール)
+
+## セットアップ
+
+### 1. リポジトリクローン
+
+```bash
+git clone https://github.com/TadokoroYuki/konbini-navi.git
+cd konbini-navi
+```
+
+### 2. 依存関係インストール
+
+```bash
+pnpm install
+```
+
+### 3. 型生成
+
+```bash
+pnpm generate:types
+```
+
+### 4. Goの依存関係
+
+```bash
+cd apps/api
+go mod download
+cd ../..
+```
+
+## ローカル開発
+
+### モバイルアプリ
+
+```bash
+cd apps/mobile
+npx expo start
+```
+
+Expo Go アプリでQRコードをスキャンして確認。
+
+### Go API (ローカル)
+
+```bash
+cd apps/api
+go run cmd/lambda/main.go
+```
+
+ローカルではポート8080でHTTPサーバーとして起動します。
+
+### CDK
+
+```bash
+cd infra
+npx cdk synth    # テンプレート生成確認
+npx cdk deploy   # AWSにデプロイ
+```
+
+## 環境変数
+
+### apps/mobile
+
+`app.config.ts` 内で環境に応じたAPI URLを設定：
+
+- 開発: `http://localhost:8080/v1`
+- 本番: API Gatewayのエンドポイント
+
+## トラブルシューティング
+
+### `pnpm install` が失敗する
+Node.js v22以上がインストールされているか確認してください。
+
+### Expo Goで接続できない
+同じWi-Fiネットワークに接続されているか確認してください。
+
+### Go buildが失敗する
+`go version` で v1.22以上か確認してください。

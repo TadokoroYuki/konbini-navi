@@ -1,0 +1,26 @@
+node_modules/
+.turbo/
+dist/
+.expo/
+*.tsbuildinfo
+
+# Go
+apps/api/bin/
+
+# CDK
+infra/cdk.out/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
