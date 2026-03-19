@@ -22,7 +22,7 @@ func NewProductHandler(productRepo repository.ProductRepository) *ProductHandler
 
 // List handles GET /v1/products
 func (h *ProductHandler) List(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query().Get("query")
+	query := r.URL.Query().Get("q")
 	brand := r.URL.Query().Get("brand")
 	category := r.URL.Query().Get("category")
 	limitStr := r.URL.Query().Get("limit")
@@ -40,7 +40,7 @@ func (h *ProductHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, products)
+	writeJSON(w, http.StatusOK, map[string]interface{}{"products": products})
 }
 
 // Get handles GET /v1/products/{productId}
