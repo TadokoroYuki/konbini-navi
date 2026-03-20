@@ -41,6 +41,11 @@ export class CiCdStack extends cdk.Stack {
           buildImage: codebuild.LinuxBuildImage.STANDARD_7_0,
           privileged: true,
         },
+        environmentVariables: {
+          REPOSITORY_URI: {
+            value: ecrRepository.repositoryUri,
+          },
+        },
         buildSpec: codebuild.BuildSpec.fromSourceFilename("apps/api/buildspec.yml"),
       }
     );
