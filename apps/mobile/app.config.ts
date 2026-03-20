@@ -13,6 +13,13 @@ const getApiUrl = (): string => {
   return "https://osjsexo43j.execute-api.us-east-1.amazonaws.com/prod/v1";
 };
 
+const getAuthUrl = (): string => {
+  if (process.env.AUTH_URL) {
+    return process.env.AUTH_URL;
+  }
+  return "http://localhost:4000";
+};
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: "コンビニナビ",
@@ -41,6 +48,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   plugins: ["expo-router"],
   extra: {
     apiUrl: getApiUrl(),
+    authUrl: getAuthUrl(),
     router: {
       origin: false,
     },
