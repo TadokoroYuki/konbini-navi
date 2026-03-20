@@ -58,6 +58,21 @@ services:
       - konbini-network
     restart: on-failure
 
+  swagger-ui:
+    image: swaggerapi/swagger-ui:latest
+    container_name: konbini-swagger-ui
+    environment:
+      SWAGGER_JSON: /openapi/openapi.yaml
+    ports:
+      - "8082:8080"
+    volumes:
+      - ./packages/api-schema/openapi.yaml:/openapi/openapi.yaml:ro
+    networks:
+      - konbini-network
+    depends_on:
+      - api
+    restart: on-failure
+
 volumes:
   postgres_data:
   redis_data:

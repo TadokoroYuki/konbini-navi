@@ -6,8 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-
-	"github.com/TadokoroYuki/konbini-navi/apps/api/internal/middleware"
+	// "github.com/TadokoroYuki/konbini-navi/apps/api/internal/middleware"
 )
 
 // NewRouter creates a new chi router with all routes configured.
@@ -40,7 +39,8 @@ func NewRouter(
 	// API routes
 	r.Route("/v1", func(r chi.Router) {
 		// Auth middleware for all /v1 routes
-		r.Use(middleware.Auth)
+		// TODO: Enable auth middleware for production
+		// r.Use(middleware.Auth)
 
 		// Products
 		r.Get("/products", productHandler.List)
