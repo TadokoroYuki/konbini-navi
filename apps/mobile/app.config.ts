@@ -28,22 +28,37 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.konbininavi.app",
+    infoPlist: {
+      NSCameraUsageDescription:
+        "レシートを撮影して食事記録に利用するため、カメラを使用します。",
+    },
   },
   android: {
     adaptiveIcon: {
       backgroundColor: "#4CAF50",
     },
     package: "com.konbininavi.app",
+    permissions: ["CAMERA"],
   },
   web: {
     favicon: "./assets/favicon.png",
   },
-  plugins: ["expo-router"],
+  plugins: [
+    "expo-router",
+    [
+      "expo-image-picker",
+      {
+        cameraPermission:
+          "レシートを撮影して食事記録に利用するため、カメラを使用します。",
+      },
+    ],
+  ],
   extra: {
     apiUrl: getApiUrl(),
     cognitoUserPoolId: process.env.COGNITO_USER_POOL_ID ?? "",
     cognitoClientId: process.env.COGNITO_CLIENT_ID ?? "",
     cognitoRegion: process.env.COGNITO_REGION ?? "us-east-1",
+    bypassAuth: process.env.EXPO_PUBLIC_BYPASS_AUTH === "1",
     router: {
       origin: false,
     },

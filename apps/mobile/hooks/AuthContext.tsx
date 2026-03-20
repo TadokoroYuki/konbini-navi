@@ -9,11 +9,17 @@ const CLIENT_ID =
   Constants.expoConfig?.extra?.cognitoClientId ?? "";
 const REGION =
   Constants.expoConfig?.extra?.cognitoRegion ?? "us-east-1";
+const BYPASS_AUTH = Constants.expoConfig?.extra?.bypassAuth === true;
 
 const COGNITO_URL = `https://cognito-idp.${REGION}.amazonaws.com/`;
 
 const TOKEN_KEY = "@konbini_navi_tokens";
 const USER_KEY = "@konbini_navi_user";
+const DEV_BYPASS_USER: AuthUser = {
+  id: "dev-bypass-user",
+  name: "Dev User",
+  email: "dev@example.com",
+};
 
 interface AuthUser {
   id: string;
@@ -63,6 +69,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const restoreSession = async () => {
+      if (BYPASS_AUTH) {
+        setToken("dev-bypass-token");
+        setUser(DEV_BYPASS_USER);
+        setAuthToken("dev-bypass-token");
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const [storedTokens, storedUser] = await Promise.all([
           AsyncStorage.getItem(TOKEN_KEY),
