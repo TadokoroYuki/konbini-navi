@@ -1,13 +1,23 @@
 import { useState, useEffect, useCallback } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  CognitoUserPool,
+  CognitoUser,
+  AuthenticationDetails,
+  CognitoUserAttribute,
+  CognitoUserSession,
+} from "amazon-cognito-identity-js";
 import Constants from "expo-constants";
 import { setAuthToken } from "../lib/api-client";
 
-const AUTH_TOKEN_KEY = "@konbini_navi_auth_token";
-const AUTH_USER_KEY = "@konbini_navi_auth_user";
+const USER_POOL_ID =
+  Constants.expoConfig?.extra?.cognitoUserPoolId ?? "";
+const CLIENT_ID =
+  Constants.expoConfig?.extra?.cognitoClientId ?? "";
 
-const AUTH_URL: string =
-  Constants.expoConfig?.extra?.authUrl ?? "http://localhost:4000";
+const userPool = new CognitoUserPool({
+  UserPoolId: USER_POOL_ID,
+  ClientId: CLIENT_ID,
+});
 
 interface AuthUser {
   id: string;
@@ -26,6 +36,32 @@ interface UseAuthReturn {
   signOut: () => Promise<void>;
 }
 
+const getSession = (cognitoUser: CognitoUser): Promise<CognitoUserSession> =>
+  new Promise((resolve, reject) => {
+    cognitoUser.getSession(
+      (err: Error | null, session: CognitoUserSession | null) => {
+        if (err || !session) {
+          reject(err ?? new Error("No session"));
+          return;
+        }
+        resolve(session);
+      }
+    );
+  });
+
+const getUserAttributes = (
+  cognitoUser: CognitoUser
+): Promise<CognitoUserAttribute[]> =>
+  new Promise((resolve, reject) => {
+    cognitoUser.getUserAttributes((err, attrs) => {
+      if (err || !attrs) {
+        reject(err ?? new Error("No attributes"));
+        return;
+      }
+      resolve(attrs);
+    });
+  });
+
 export const useAuth = (): UseAuthReturn => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -34,17 +70,28 @@ export const useAuth = (): UseAuthReturn => {
   useEffect(() => {
     const restoreSession = async () => {
       try {
-        const [storedToken, storedUser] = await Promise.all([
-          AsyncStorage.getItem(AUTH_TOKEN_KEY),
-          AsyncStorage.getItem(AUTH_USER_KEY),
-        ]);
-        if (storedToken && storedUser) {
-          setToken(storedToken);
-          setUser(JSON.parse(storedUser));
-          setAuthToken(storedToken);
+        const cognitoUser = userPool.getCurrentUser();
+        if (!cognitoUser) {
+          setIsLoading(false);
+          return;
         }
+
+        const session = await getSession(cognitoUser);
+        const idToken = session.getIdToken().getJwtToken();
+        const attrs = await getUserAttributes(cognitoUser);
+
+        const email =
+          attrs.find((a) => a.getName() === "email")?.getValue() ?? "";
+        const name =
+          attrs.find((a) => a.getName() === "name")?.getValue() ?? "";
+        const sub =
+          attrs.find((a) => a.getName() === "sub")?.getValue() ?? "";
+
+        setToken(idToken);
+        setUser({ id: sub, name, email });
+        setAuthToken(idToken);
       } catch {
-        // Session restore failed, user will need to log in
+        // Session expired or invalid
       } finally {
         setIsLoading(false);
       }
@@ -53,87 +100,67 @@ export const useAuth = (): UseAuthReturn => {
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const res = await fetch(`${AUTH_URL}/api/auth/sign-in/email`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+    const cognitoUser = new CognitoUser({
+      Username: email,
+      Pool: userPool,
+    });
+    const authDetails = new AuthenticationDetails({
+      Username: email,
+      Password: password,
     });
 
-    if (!res.ok) {
-      throw new Error("ログインに失敗しました");
-    }
+    const session = await new Promise<CognitoUserSession>((resolve, reject) => {
+      cognitoUser.authenticateUser(authDetails, {
+        onSuccess: resolve,
+        onFailure: reject,
+      });
+    });
 
-    const data = await res.json();
-    const authToken = data.token;
-    const authUser: AuthUser = {
-      id: data.user.id,
-      name: data.user.name,
-      email: data.user.email,
-    };
+    const idToken = session.getIdToken().getJwtToken();
+    const attrs = await getUserAttributes(cognitoUser);
 
-    await Promise.all([
-      AsyncStorage.setItem(AUTH_TOKEN_KEY, authToken),
-      AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(authUser)),
-    ]);
+    const name =
+      attrs.find((a) => a.getName() === "name")?.getValue() ?? "";
+    const sub =
+      attrs.find((a) => a.getName() === "sub")?.getValue() ?? "";
 
-    setToken(authToken);
-    setUser(authUser);
-    setAuthToken(authToken);
+    setToken(idToken);
+    setUser({ id: sub, name, email });
+    setAuthToken(idToken);
   }, []);
 
   const signUp = useCallback(
     async (name: string, email: string, password: string) => {
-      const res = await fetch(`${AUTH_URL}/api/auth/sign-up/email`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+      const attributes = [
+        new CognitoUserAttribute({ Name: "email", Value: email }),
+        new CognitoUserAttribute({ Name: "name", Value: name }),
+      ];
+
+      await new Promise<CognitoUser>((resolve, reject) => {
+        userPool.signUp(email, password, attributes, [], (err, result) => {
+          if (err || !result) {
+            reject(err ?? new Error("Sign up failed"));
+            return;
+          }
+          resolve(result.user);
+        });
       });
 
-      if (!res.ok) {
-        throw new Error("登録に失敗しました");
-      }
-
-      const data = await res.json();
-      const authToken = data.token;
-      const authUser: AuthUser = {
-        id: data.user.id,
-        name: data.user.name,
-        email: data.user.email,
-      };
-
-      await Promise.all([
-        AsyncStorage.setItem(AUTH_TOKEN_KEY, authToken),
-        AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(authUser)),
-      ]);
-
-      setToken(authToken);
-      setUser(authUser);
-      setAuthToken(authToken);
+      // Auto sign-in after signup (only works if auto-verify is enabled)
+      await signIn(email, password);
     },
-    []
+    [signIn]
   );
 
   const signOut = useCallback(async () => {
-    try {
-      if (token) {
-        await fetch(`${AUTH_URL}/api/auth/sign-out`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-      }
-    } catch {
-      // Sign out from server failed, still clear local state
+    const cognitoUser = userPool.getCurrentUser();
+    if (cognitoUser) {
+      cognitoUser.signOut();
     }
-
-    await Promise.all([
-      AsyncStorage.removeItem(AUTH_TOKEN_KEY),
-      AsyncStorage.removeItem(AUTH_USER_KEY),
-    ]);
-
     setToken(null);
     setUser(null);
     setAuthToken(null);
-  }, [token]);
+  }, []);
 
   return {
     user,
