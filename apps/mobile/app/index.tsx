@@ -1,10 +1,11 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
   RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useAuth } from "../hooks/useAuth";
@@ -109,6 +110,22 @@ const HomeScreen = () => {
   const today = getToday();
   const { nutrition, isLoading, refetch } = useNutrition(deviceId, today);
   const [refreshing, setRefreshing] = useState(false);
+  const [slowMessage, setSlowMessage] = useState(false);
+  const slowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (isLoading) {
+      slowTimer.current = setTimeout(() => {
+        setSlowMessage(true);
+      }, 3000);
+    } else {
+      if (slowTimer.current) clearTimeout(slowTimer.current);
+      setSlowMessage(false);
+    }
+    return () => {
+      if (slowTimer.current) clearTimeout(slowTimer.current);
+    };
+  }, [isLoading]);
 
   useFocusEffect(
     useCallback(() => {
@@ -139,7 +156,9 @@ const HomeScreen = () => {
       {/* Nutrition Cards */}
       {isLoading ? (
         <View style={styles.loadingCard}>
-          <Text style={styles.loadingText}>データを読み込み中...</Text>
+          <ActivityIndicator size="large" color="#4CAF50" />
+          <Text style={[styles.loadingText, { marginTop: 12 }]}>データを読み込み中...</Text>
+          {slowMessage && <Text style={styles.slowText}>通信に時間がかかっています</Text>}
         </View>
       ) : nutrition ? (
         <View style={styles.cardsContainer}>
@@ -280,6 +299,11 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 14,
     color: "#888",
+  },
+  slowText: {
+    fontSize: 13,
+    color: "#888",
+    marginTop: 12,
   },
   summaryCard: {
     backgroundColor: "#E8F5E9",

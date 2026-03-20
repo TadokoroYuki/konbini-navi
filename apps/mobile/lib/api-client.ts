@@ -77,6 +77,7 @@ export const searchProducts = async (
     );
     return result.products;
   } catch {
+    console.warn("[FALLBACK] searchProducts - using mock data");
     // Fallback to mock data
     let filtered = [...mockProducts];
     if (params.q) {
@@ -101,6 +102,7 @@ export const getProduct = async (productId: string): Promise<Product> => {
   try {
     return await request<Product>(`/products/${productId}`);
   } catch {
+    console.warn("[FALLBACK] getProduct - using mock data");
     const product = mockProducts.find((p) => p.productId === productId);
     if (!product) throw new Error("商品が見つかりません");
     return product;
@@ -119,6 +121,7 @@ export const listRecords = async (
     );
     return result.records;
   } catch {
+    console.warn("[FALLBACK] listRecords - using mock data");
     return mockRecords.filter((r) => r.date === date);
   }
 };
@@ -127,39 +130,19 @@ export const createRecord = async (
   userId: string,
   data: CreateRecordRequest
 ): Promise<MealRecord> => {
-  try {
-    return await request<MealRecord>(`/users/${userId}/records`, {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  } catch {
-    // Mock: create a local record
-    const product = mockProducts.find((p) => p.productId === data.productId);
-    if (!product) throw new Error("商品が見つかりません");
-    const record: MealRecord = {
-      recordId: `r${Date.now()}`,
-      userId,
-      productId: data.productId,
-      product,
-      date: data.date,
-      mealType: data.mealType,
-      createdAt: new Date().toISOString(),
-    };
-    return record;
-  }
+  return await request<MealRecord>(`/users/${userId}/records`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 };
 
 export const deleteRecord = async (
   userId: string,
   recordId: string
 ): Promise<void> => {
-  try {
-    await request<void>(`/users/${userId}/records/${recordId}`, {
-      method: "DELETE",
-    });
-  } catch {
-    // Mock: no-op
-  }
+  await request<void>(`/users/${userId}/records/${recordId}`, {
+    method: "DELETE",
+  });
 };
 
 // --- Nutrition ---
@@ -173,6 +156,7 @@ export const getNutrition = async (
       `/users/${userId}/nutrition?date=${date}`
     );
   } catch {
+    console.warn("[FALLBACK] getNutrition - using mock data");
     return { ...mockNutritionSummary, date };
   }
 };
@@ -189,6 +173,7 @@ export const getRecommendations = async (
     );
     return result.recommendations;
   } catch {
+    console.warn("[FALLBACK] getRecommendations - using mock data");
     return mockRecommendations;
   }
 };
