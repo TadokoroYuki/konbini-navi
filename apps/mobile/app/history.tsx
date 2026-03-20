@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "expo-router";
 import { useAuth } from "../hooks/useAuth";
 import { useNutrition } from "../hooks/useNutrition";
 import { listRecords, deleteRecord } from "../lib/api-client";
@@ -34,11 +35,18 @@ function formatDateStr(dateStr: string): string {
 function addDays(dateStr: string, days: number): string {
   const d = new Date(dateStr + "T00:00:00");
   d.setDate(d.getDate() + days);
-  return d.toISOString().split("T")[0];
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function getToday(): string {
-  return new Date().toISOString().split("T")[0];
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function getStatusColor(status: NutritionStatus): string {
@@ -101,9 +109,11 @@ export default function HistoryScreen() {
     }
   }, [deviceId, selectedDate]);
 
-  useEffect(() => {
-    fetchRecords();
-  }, [fetchRecords]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchRecords();
+    }, [fetchRecords])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);

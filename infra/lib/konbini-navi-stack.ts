@@ -78,6 +78,17 @@ export class KonbiniNaviStack extends cdk.Stack {
     // CodeBuildにECRプッシュ権限を付与
     ecrRepo.grantPullPush(buildProject);
 
+    // CodeBuildにSecretsManagerアクセス権限を付与
+    buildProject.role?.addToPrincipalPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: [
+          `arn:aws:secretsmanager:${this.region}:${this.account}:secret:github-pat-*`,
+        ],
+      })
+    );
+
     // ----------------------------------------------------------------
     // CodePipeline
     // ----------------------------------------------------------------
@@ -95,8 +106,8 @@ export class KonbiniNaviStack extends cdk.Stack {
       actions: [
         new codepipeline_actions.CodeStarConnectionsSourceAction({
           actionName: "GitHub",
-          owner: "warisuno", // GitHubユーザー名に変更してください
-          repo: "konbini-navi", // リポジトリ名に変更してください
+          owner: "TadokoroYuki",
+          repo: "konbini-navi",
           branch: "main",
           output: sourceArtifact,
           connectionArn: codeConnection.attrConnectionArn,
