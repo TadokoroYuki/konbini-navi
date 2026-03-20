@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RecordService_ListRecords_FullMethodName  = "/record.RecordService/ListRecords"
-	RecordService_CreateRecord_FullMethodName = "/record.RecordService/CreateRecord"
-	RecordService_DeleteRecord_FullMethodName = "/record.RecordService/DeleteRecord"
+	RecordService_ListRecords_FullMethodName    = "/record.RecordService/ListRecords"
+	RecordService_ListAllRecords_FullMethodName = "/record.RecordService/ListAllRecords"
+	RecordService_CreateRecord_FullMethodName   = "/record.RecordService/CreateRecord"
+	RecordService_DeleteRecord_FullMethodName   = "/record.RecordService/DeleteRecord"
 )
 
 // RecordServiceClient is the client API for RecordService service.
@@ -29,6 +30,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RecordServiceClient interface {
 	ListRecords(ctx context.Context, in *ListRecordsRequest, opts ...grpc.CallOption) (*ListRecordsResponse, error)
+	ListAllRecords(ctx context.Context, in *ListAllRecordsRequest, opts ...grpc.CallOption) (*ListRecordsResponse, error)
 	CreateRecord(ctx context.Context, in *CreateRecordRequest, opts ...grpc.CallOption) (*Record, error)
 	DeleteRecord(ctx context.Context, in *DeleteRecordRequest, opts ...grpc.CallOption) (*Empty, error)
 }
@@ -45,6 +47,16 @@ func (c *recordServiceClient) ListRecords(ctx context.Context, in *ListRecordsRe
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListRecordsResponse)
 	err := c.cc.Invoke(ctx, RecordService_ListRecords_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *recordServiceClient) ListAllRecords(ctx context.Context, in *ListAllRecordsRequest, opts ...grpc.CallOption) (*ListRecordsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListRecordsResponse)
+	err := c.cc.Invoke(ctx, RecordService_ListAllRecords_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -76,6 +88,7 @@ func (c *recordServiceClient) DeleteRecord(ctx context.Context, in *DeleteRecord
 // for forward compatibility.
 type RecordServiceServer interface {
 	ListRecords(context.Context, *ListRecordsRequest) (*ListRecordsResponse, error)
+	ListAllRecords(context.Context, *ListAllRecordsRequest) (*ListRecordsResponse, error)
 	CreateRecord(context.Context, *CreateRecordRequest) (*Record, error)
 	DeleteRecord(context.Context, *DeleteRecordRequest) (*Empty, error)
 	mustEmbedUnimplementedRecordServiceServer()
@@ -90,6 +103,9 @@ type UnimplementedRecordServiceServer struct{}
 
 func (UnimplementedRecordServiceServer) ListRecords(context.Context, *ListRecordsRequest) (*ListRecordsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListRecords not implemented")
+}
+func (UnimplementedRecordServiceServer) ListAllRecords(context.Context, *ListAllRecordsRequest) (*ListRecordsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListAllRecords not implemented")
 }
 func (UnimplementedRecordServiceServer) CreateRecord(context.Context, *CreateRecordRequest) (*Record, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateRecord not implemented")
@@ -132,6 +148,24 @@ func _RecordService_ListRecords_Handler(srv interface{}, ctx context.Context, de
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RecordServiceServer).ListRecords(ctx, req.(*ListRecordsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RecordService_ListAllRecords_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAllRecordsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RecordServiceServer).ListAllRecords(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RecordService_ListAllRecords_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RecordServiceServer).ListAllRecords(ctx, req.(*ListAllRecordsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -182,6 +216,10 @@ var RecordService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListRecords",
 			Handler:    _RecordService_ListRecords_Handler,
+		},
+		{
+			MethodName: "ListAllRecords",
+			Handler:    _RecordService_ListAllRecords_Handler,
 		},
 		{
 			MethodName: "CreateRecord",
