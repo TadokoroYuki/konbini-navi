@@ -1,5 +1,13 @@
 version: '3.8'
 
+x-api-common: &api-common
+  build:
+    context: ./apps/api
+    dockerfile: Dockerfile
+  restart: on-failure
+  networks:
+    - konbini-network
+
 services:
   postgres:
     image: postgres:15-alpine
@@ -21,42 +29,85 @@ services:
     networks:
       - konbini-network
 
-  redis:
-    image: redis:7-alpine
-    container_name: konbini-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - konbini-network
-
-  api:
+  products:
+    <<: *api-common
     build:
       context: ./apps/api
       dockerfile: Dockerfile
-    container_name: konbini-api
+      args:
+        SERVICE_NAME: products
+    container_name: konbini-products
     environment:
-      DB_HOST: postgres
-      DB_PORT: "5432"
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_NAME: konbini_navi
+      HTTP_PORT: "7111"
+      GRPC_PORT: "7112"
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/konbini_navi?sslmode=disable
     ports:
-      - "8080:8080"
+      - "7111:7111"
+      - "7112:7112"
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
+
+  records:
+    <<: *api-common
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: records
+    container_name: konbini-records
+    environment:
+      HTTP_PORT: "8810"
+      GRPC_PORT: "8811"
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/konbini_navi?sslmode=disable
+      PRODUCTS_GRPC_ADDR: products:7112
+    ports:
+      - "8810:8810"
+      - "8811:8811"
+    depends_on:
+      postgres:
         condition: service_healthy
-    networks:
-      - konbini-network
-    restart: on-failure
+      products:
+        condition: service_started
+
+  nutrition:
+    <<: *api-common
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: nutrition
+    container_name: konbini-nutrition
+    environment:
+      HTTP_PORT: "1056"
+      GRPC_PORT: "1057"
+      RECORDS_GRPC_ADDR: records:8811
+    ports:
+      - "1056:1056"
+      - "1057:1057"
+    depends_on:
+      records:
+        condition: service_started
+
+  recommendations:
+    <<: *api-common
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: recommendations
+    container_name: konbini-recommendations
+    environment:
+      HTTP_PORT: "2525"
+      NUTRITION_GRPC_ADDR: nutrition:1057
+      PRODUCTS_GRPC_ADDR: products:7112
+    ports:
+      - "2525:2525"
+    depends_on:
+      nutrition:
+        condition: service_started
+      products:
+        condition: service_started
 
   swagger-ui:
     image: swaggerapi/swagger-ui:latest
@@ -69,13 +120,10 @@ services:
       - ./packages/api-schema/openapi.yaml:/openapi/openapi.yaml:ro
     networks:
       - konbini-network
-    depends_on:
-      - api
     restart: on-failure
 
 volumes:
   postgres_data:
-  redis_data:
 
 networks:
   konbini-network:

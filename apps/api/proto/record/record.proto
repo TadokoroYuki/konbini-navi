@@ -1,0 +1,44 @@
+syntax = "proto3";
+package record;
+option go_package = "github.com/TadokoroYuki/konbini-navi/apps/api/gen/record";
+
+import "product/product.proto";
+
+message Record {
+  string          record_id  = 1;
+  string          user_id    = 2;
+  string          product_id = 3;
+  product.Product product    = 4;
+  string          date       = 5;
+  string          meal_type  = 6;
+  string          created_at = 7;
+}
+
+message ListRecordsRequest {
+  string user_id = 1;
+  string date    = 2;
+}
+
+message ListRecordsResponse {
+  repeated Record records = 1;
+}
+
+message CreateRecordRequest {
+  string user_id    = 1;
+  string product_id = 2;
+  string date       = 3;
+  string meal_type  = 4;
+}
+
+message DeleteRecordRequest {
+  string user_id   = 1;
+  string record_id = 2;
+}
+
+message Empty {}
+
+service RecordService {
+  rpc ListRecords(ListRecordsRequest) returns (ListRecordsResponse);
+  rpc CreateRecord(CreateRecordRequest) returns (Record);
+  rpc DeleteRecord(DeleteRecordRequest) returns (Empty);
+}

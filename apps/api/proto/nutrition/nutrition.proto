@@ -1,0 +1,27 @@
+syntax = "proto3";
+package nutrition;
+option go_package = "github.com/TadokoroYuki/konbini-navi/apps/api/gen/nutrition";
+
+message NutrientStatus {
+  double actual = 1;
+  double target = 2;
+  double ratio  = 3;
+  string status = 4;
+}
+
+message NutritionSummary {
+  string         date     = 1;
+  NutrientStatus calories = 2;
+  NutrientStatus protein  = 3;
+  NutrientStatus fat      = 4;
+  NutrientStatus carbs    = 5;
+}
+
+message GetNutritionRequest {
+  string user_id = 1;
+  string date    = 2;
+}
+
+service NutritionService {
+  rpc GetNutrition(GetNutritionRequest) returns (NutritionSummary);
+}
