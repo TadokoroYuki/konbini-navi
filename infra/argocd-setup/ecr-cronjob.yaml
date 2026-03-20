@@ -1,0 +1,59 @@
+# Secretを更新するための権限を付与
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ecr-secret-manager
+  namespace: argocd
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "create", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ecr-secret-manager-binding
+  namespace: argocd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ecr-secret-manager
+subjects:
+- kind: ServiceAccount
+  name: argocd-image-updater  # 既存のIRSA付きSAを流用
+  namespace: argocd
+---
+# 8時間ごとにECRトークンを取得し、Secretを更新するCronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ecr-token-refresh
+  namespace: argocd
+spec:
+  schedule: "0 */8 * * *" # 8時間ごと
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: argocd-image-updater # IRSAの権限を使う
+          containers:
+          - name: ecr-token-refresh
+            image: amazon/aws-cli:latest
+            command: ["/bin/sh", "-c"]
+            args:
+            - |
+              # kubectlを一時的にダウンロード
+              curl -sLO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+              chmod +x ./kubectl
+
+              # ECRから12時間有効なパスワードを取得
+              TOKEN=$(aws ecr get-login-password --region ap-northeast-1)
+
+              # Image Updaterが読める形式 (ユーザー名AWS : パスワード) でSecretを適用
+              ./kubectl create secret generic ecr-cred-secret \
+                --from-literal=creds=AWS:$TOKEN \
+                --namespace=argocd \
+                --dry-run=client -o yaml | ./kubectl apply -f -
+          restartPolicy: OnFailure
