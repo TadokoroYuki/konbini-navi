@@ -166,7 +166,7 @@ export default function RecommendScreen() {
               <View style={styles.nutritionItem}>
                 <Text style={styles.nutritionItemLabel}>Cal</Text>
                 <Text style={styles.nutritionItemValue}>
-                  {rec.product.nutrition.calories}
+                  {Number(rec.product.nutrition.calories)} kcal
                 </Text>
               </View>
               <View style={styles.nutritionItem}>
