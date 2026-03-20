@@ -39,6 +39,13 @@ phases:
       - git add infra/k8s/deployment.yaml
       - git commit -m "Update image tag to $IMAGE_TAG" || echo "No changes to commit"
       - git push origin HEAD:main || echo "Failed to push, but continuing..."
+      # Deploy CDK infrastructure
+      - echo "Deploying CDK infrastructure..."
+      - cd $CODEBUILD_SRC_DIR/infra
+      - npm install
+      - npm run build
+      - npx cdk deploy --all --require-approval=never
+      - echo "CDK deployment completed"
       - echo "Writing image definitions file..."
       - printf '[{"name":"konbini-navi-api","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
 

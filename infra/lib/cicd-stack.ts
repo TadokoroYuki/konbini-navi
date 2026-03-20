@@ -76,6 +76,82 @@ export class CiCdStack extends cdk.Stack {
       })
     );
 
+    // CDK Deploy permissions
+    buildProject.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "cloudformation:CreateStack",
+          "cloudformation:UpdateStack",
+          "cloudformation:DeleteStack",
+          "cloudformation:DescribeStacks",
+          "cloudformation:GetTemplate",
+          "cloudformation:ValidateTemplate",
+        ],
+        resources: [
+          `arn:aws:cloudformation:${this.region}:${this.account}:stack/KonbiniNavi*`,
+        ],
+      })
+    );
+
+    // IAM Role creation for CDK
+    buildProject.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "iam:PassRole",
+          "iam:CreateRole",
+          "iam:PutRolePolicy",
+          "iam:AttachRolePolicy",
+          "iam:GetRole",
+        ],
+        resources: [
+          `arn:aws:iam::${this.account}:role/cdk-*`,
+        ],
+      })
+    );
+
+    // EC2 and VPC resources for CDK
+    buildProject.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "ec2:DescribeAvailabilityZones",
+          "ec2:DescribeSubnets",
+          "ec2:DescribeVpcs",
+          "ec2:DescribeSecurityGroups",
+          "ec2:DescribeNetworkInterfaces",
+        ],
+        resources: ["*"],
+      })
+    );
+
+    // ECR permissions for CDK
+    buildProject.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "ecr:CreateRepository",
+          "ecr:DescribeRepositories",
+          "ecr:ListImages",
+        ],
+        resources: [
+          `arn:aws:ecr:${this.region}:${this.account}:repository/*`,
+        ],
+      })
+    );
+
+    // CloudWatch Logs for CDK
+    buildProject.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogGroups",
+        ],
+        resources: [
+          `arn:aws:logs:${this.region}:${this.account}:log-group:/aws/cdk/*`,
+        ],
+      })
+    );
+
     // ----------------------------------------------------------------
     // CodePipeline
     // ----------------------------------------------------------------
