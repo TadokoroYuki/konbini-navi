@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: konbini-navi-records
+  namespace: default
+  labels:
+    app: konbini-navi-records
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: konbini-navi-records
+  template:
+    metadata:
+      labels:
+        app: konbini-navi-records
+    spec:
+      containers:
+      - name: records
+        image: 974857491219.dkr.ecr.ap-northeast-1.amazonaws.com/konbini-navi-api:latest
+        command: ["/app/records"]
+        ports:
+        - containerPort: 8810
+          name: http
+        - containerPort: 8811
+          name: grpc
+        env:
+        - name: HTTP_PORT
+          value: "8810"
+        - name: GRPC_PORT
+          value: "8811"
+        - name: DATABASE_URL
+          value: "postgres://postgres:konbini-secure-pass-2026@postgres:5432/konbini_navi?sslmode=disable"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8810
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8810
+          initialDelaySeconds: 5
+          periodSeconds: 5

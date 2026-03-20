@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: konbini-navi-api
+  name: konbini-navi-ingress
   namespace: default
   annotations:
     # AWS Load Balancer Controller設定
@@ -19,10 +19,31 @@ spec:
   rules:
   - http:
       paths:
-      - path: /
+      - path: /v1/products
         pathType: Prefix
         backend:
           service:
-            name: konbini-navi-api
+            name: products
             port:
-              number: 80
+              number: 7111
+      - path: /v1/users/*/records
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: records
+            port:
+              number: 8810
+      - path: /v1/users/*/nutrition
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: nutrition
+            port:
+              number: 1056
+      - path: /v1/users/*/recommendations
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: recommendations
+            port:
+              number: 2525

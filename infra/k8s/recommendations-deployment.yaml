@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: konbini-navi-recommendations
+  namespace: default
+  labels:
+    app: konbini-navi-recommendations
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: konbini-navi-recommendations
+  template:
+    metadata:
+      labels:
+        app: konbini-navi-recommendations
+    spec:
+      containers:
+      - name: recommendations
+        image: 974857491219.dkr.ecr.ap-northeast-1.amazonaws.com/konbini-navi-api:latest
+        command: ["/app/recommendations"]
+        ports:
+        - containerPort: 2525
+          name: http
+        - containerPort: 2526
+          name: grpc
+        env:
+        - name: HTTP_PORT
+          value: "2525"
+        - name: GRPC_PORT
+          value: "2526"
+        - name: NUTRITION_GRPC_ADDR
+          value: "nutrition:1057"
+        - name: PRODUCTS_GRPC_ADDR
+          value: "products:7112"
+        - name: DATABASE_URL
+          value: "postgres://postgres:konbini-secure-pass-2026@postgres:5432/konbini_navi?sslmode=disable"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 2525
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 2525
+          initialDelaySeconds: 5
+          periodSeconds: 5

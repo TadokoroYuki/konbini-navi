@@ -19,7 +19,7 @@ phases:
       - echo "Build started on `date`"
       - echo "Building the Docker image..."
       # REPOSITORY_URI はCDKの環境変数から自動で渡ってきます
-      - docker build --platform linux/amd64 --build-arg SERVICE_NAME=api -f apps/api/Dockerfile -t $REPOSITORY_URI:latest apps/api
+      - docker build --platform linux/amd64 -f apps/api/Dockerfile -t $REPOSITORY_URI:latest apps/api
       - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
 
   post_build:

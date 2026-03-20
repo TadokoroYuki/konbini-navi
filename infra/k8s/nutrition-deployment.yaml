@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: konbini-navi-nutrition
+  namespace: default
+  labels:
+    app: konbini-navi-nutrition
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: konbini-navi-nutrition
+  template:
+    metadata:
+      labels:
+        app: konbini-navi-nutrition
+    spec:
+      containers:
+      - name: nutrition
+        image: 974857491219.dkr.ecr.ap-northeast-1.amazonaws.com/konbini-navi-api:latest
+        command: ["/app/nutrition"]
+        ports:
+        - containerPort: 1056
+          name: http
+        - containerPort: 1057
+          name: grpc
+        env:
+        - name: HTTP_PORT
+          value: "1056"
+        - name: GRPC_PORT
+          value: "1057"
+        - name: RECORDS_GRPC_ADDR
+          value: "records:8811"
+        - name: DATABASE_URL
+          value: "postgres://postgres:konbini-secure-pass-2026@postgres:5432/konbini_navi?sslmode=disable"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 1056
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 1056
+          initialDelaySeconds: 5
+          periodSeconds: 5
