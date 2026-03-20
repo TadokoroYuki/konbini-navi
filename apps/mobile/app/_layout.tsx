@@ -1,7 +1,7 @@
-import { Tabs, useRouter, useSegments } from "expo-router";
+import { Tabs, Slot, useRouter, useSegments } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
-import { useAuth } from "../hooks/useAuth";
+import { AuthProvider, useAuth } from "../hooks/AuthContext";
 import { useEffect } from "react";
 import {
   ActivityIndicator,
@@ -10,7 +10,7 @@ import {
   Text,
 } from "react-native";
 
-const RootLayout = () => {
+const RootLayoutInner = () => {
   const { isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
   const segments = useSegments();
@@ -33,6 +33,15 @@ const RootLayout = () => {
         <ActivityIndicator size="large" color="#4CAF50" />
         <Text style={styles.loadingText}>読み込み中...</Text>
       </View>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <Slot />
+      </>
     );
   }
 
@@ -108,13 +117,18 @@ const RootLayout = () => {
           name="auth"
           options={{
             href: null,
-            tabBarStyle: { display: "none" },
           }}
         />
       </Tabs>
     </>
   );
 };
+
+const RootLayout = () => (
+  <AuthProvider>
+    <RootLayoutInner />
+  </AuthProvider>
+);
 
 export default RootLayout;
 

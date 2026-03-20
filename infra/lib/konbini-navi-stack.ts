@@ -1,6 +1,8 @@
 import * as cdk from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecr from "aws-cdk-lib/aws-ecr";
+import * as cognito from "aws-cdk-lib/aws-cognito";
+import * as lambda from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
 
 export class KonbiniNaviStack extends cdk.Stack {
@@ -42,6 +44,59 @@ export class KonbiniNaviStack extends cdk.Stack {
 
 
     // ----------------------------------------------------------------
+    // Cognito Pre Sign-Up Lambda (auto-confirm)
+    // ----------------------------------------------------------------
+    const autoConfirmFn = new lambda.Function(this, "AutoConfirmFunction", {
+      runtime: lambda.Runtime.NODEJS_22_X,
+      handler: "index.handler",
+      code: lambda.Code.fromInline(`
+        exports.handler = async (event) => {
+          event.response.autoConfirmUser = true;
+          if (event.request.userAttributes.email) {
+            event.response.autoVerifyEmail = true;
+          }
+          return event;
+        };
+      `),
+      timeout: cdk.Duration.seconds(5),
+    });
+
+    // ----------------------------------------------------------------
+    // Cognito User Pool
+    // ----------------------------------------------------------------
+    const userPool = new cognito.UserPool(this, "KonbiniNaviUserPool", {
+      userPoolName: "konbini-navi-users",
+      selfSignUpEnabled: true,
+      signInAliases: { email: true },
+      autoVerify: { email: true },
+      passwordPolicy: {
+        minLength: 8,
+        requireLowercase: false,
+        requireUppercase: false,
+        requireDigits: false,
+        requireSymbols: false,
+      },
+      standardAttributes: {
+        email: { required: true, mutable: true },
+        fullname: { required: false, mutable: true },
+      },
+      accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      lambdaTriggers: {
+        preSignUp: autoConfirmFn,
+      },
+    });
+
+    const userPoolClient = userPool.addClient("KonbiniNaviWebClient", {
+      userPoolClientName: "konbini-navi-web",
+      authFlows: {
+        userPassword: true,
+        userSrp: true,
+      },
+      preventUserExistenceErrors: true,
+    });
+
+    // ----------------------------------------------------------------
     // Outputs
     // ----------------------------------------------------------------
     new cdk.CfnOutput(this, "VpcId", {
@@ -57,6 +112,16 @@ export class KonbiniNaviStack extends cdk.Stack {
     new cdk.CfnOutput(this, "ECRRepositoryName", {
       value: this.ecrRepository.repositoryName,
       description: "ECR Repository Name",
+    });
+
+    new cdk.CfnOutput(this, "CognitoUserPoolId", {
+      value: userPool.userPoolId,
+      description: "Cognito User Pool ID",
+    });
+
+    new cdk.CfnOutput(this, "CognitoUserPoolClientId", {
+      value: userPoolClient.userPoolClientId,
+      description: "Cognito User Pool Client ID",
     });
   }
 }

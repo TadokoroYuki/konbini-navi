@@ -18,12 +18,14 @@ const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
   const { signIn } = useAuth();
 
   const handleLogin = async () => {
+    setErrorMessage("");
     if (!email || !password) {
-      Alert.alert("エラー", "メールアドレスとパスワードを入力してください");
+      setErrorMessage("メールアドレスとパスワードを入力してください");
       return;
     }
 
@@ -31,7 +33,7 @@ const LoginScreen = () => {
     try {
       await signIn(email, password);
     } catch {
-      Alert.alert("ログイン失敗", "メールアドレスまたはパスワードが正しくありません");
+      setErrorMessage("メールアドレスまたはパスワードが正しくありません");
     } finally {
       setIsSubmitting(false);
     }
@@ -52,6 +54,9 @@ const LoginScreen = () => {
         </View>
 
         <View style={styles.form}>
+          {errorMessage ? (
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          ) : null}
           <Text style={styles.label}>メールアドレス</Text>
           <TextInput
             style={styles.input}
@@ -175,5 +180,14 @@ const styles = StyleSheet.create({
   linkBold: {
     color: "#4CAF50",
     fontWeight: "600",
+  },
+  errorText: {
+    color: "#F44336",
+    fontSize: 14,
+    textAlign: "center" as const,
+    marginBottom: 12,
+    backgroundColor: "#FFEBEE",
+    padding: 12,
+    borderRadius: 8,
   },
 });
