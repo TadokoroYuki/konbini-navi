@@ -6,11 +6,16 @@ applications:
     buildSpec: |
       version: 0.1
       phases:
+        pre_build:
+          commands:
+            - echo "Setting build environment..."
+            - export APP_VARIANT=production
+            - npm install -g pnpm
         install:
           commands:
             - echo "Installing dependencies..."
             - npm install -g expo-cli
-            - npm ci
+            - pnpm install
         build:
           commands:
             - echo "Building Expo Web..."
@@ -19,3 +24,7 @@ applications:
         files:
           - '**/*'
         baseDirectory: apps/mobile/dist
+      cache:
+        paths:
+          - 'node_modules/**/*'
+          - 'apps/mobile/node_modules/**/*'
