@@ -38,7 +38,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   web: {
     favicon: "./assets/favicon.png",
   },
-  plugins: ["expo-router"],
+  plugins: [
+    "expo-router",
+    [
+      "expo-camera",
+      {
+        cameraPermission: "バーコードをスキャンするためにカメラを使用します。",
+      },
+    ],
+  ],
   extra: {
     apiUrl: getApiUrl(),
     cognitoUserPoolId: process.env.COGNITO_USER_POOL_ID ?? "",

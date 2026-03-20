@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useAuth } from "../hooks/useAuth";
 import {
   searchProducts,
@@ -30,6 +31,7 @@ import { getToday } from "../lib/date";
 const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
 
 const RecordScreen = () => {
+  const router = useRouter();
   const { deviceId } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMealType, setSelectedMealType] = useState<MealType>("lunch");
@@ -165,6 +167,14 @@ const RecordScreen = () => {
             <Ionicons name="close-circle" size={20} color="#999" />
           </TouchableOpacity>
         )}
+        {Platform.OS !== "web" && (
+          <TouchableOpacity
+            style={styles.scanButton}
+            onPress={() => router.push("/scan")}
+          >
+            <Ionicons name="barcode-outline" size={24} color="#4CAF50" />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Meal Type Selector */}
@@ -262,6 +272,10 @@ const styles = StyleSheet.create({
   },
   searchIcon: {
     marginRight: 8,
+  },
+  scanButton: {
+    marginLeft: 8,
+    padding: 4,
   },
   searchInput: {
     flex: 1,

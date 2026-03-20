@@ -114,6 +114,14 @@ const RootLayoutInner = () => {
           }}
         />
         <Tabs.Screen
+          name="scan"
+          options={{
+            href: null,
+            headerTitle: "バーコードスキャン",
+            headerShown: false,
+          }}
+        />
+        <Tabs.Screen
           name="auth"
           options={{
             href: null,
