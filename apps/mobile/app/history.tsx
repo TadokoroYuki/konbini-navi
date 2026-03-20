@@ -23,7 +23,7 @@ import {
 } from "../lib/types";
 import { getToday } from "../lib/date";
 
-function formatDateStr(dateStr: string): string {
+const formatDateStr = (dateStr: string): string => {
   const d = new Date(dateStr + "T00:00:00");
   const year = d.getFullYear();
   const month = d.getMonth() + 1;
@@ -31,18 +31,18 @@ function formatDateStr(dateStr: string): string {
   const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
   const weekday = weekdays[d.getDay()];
   return `${year}年${month}月${day}日（${weekday}）`;
-}
+};
 
-function addDays(dateStr: string, days: number): string {
+const addDays = (dateStr: string, days: number): string => {
   const d = new Date(dateStr + "T00:00:00");
   d.setDate(d.getDate() + days);
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
-}
+};
 
-function getStatusColor(status: NutritionStatus): string {
+const getStatusColor = (status: NutritionStatus): string => {
   switch (status) {
     case "deficient":
       return "#FF9800";
@@ -51,7 +51,7 @@ function getStatusColor(status: NutritionStatus): string {
     case "excessive":
       return "#F44336";
   }
-}
+};
 
 interface NutrientMiniProps {
   label: string;
@@ -59,7 +59,7 @@ interface NutrientMiniProps {
   unit: string;
 }
 
-function NutrientMini({ label, data, unit }: NutrientMiniProps) {
+const NutrientMini = ({ label, data, unit }: NutrientMiniProps) => {
   return (
     <View style={styles.nutrientMini}>
       <Text style={styles.nutrientMiniLabel}>{label}</Text>
@@ -76,9 +76,9 @@ function NutrientMini({ label, data, unit }: NutrientMiniProps) {
       </Text>
     </View>
   );
-}
+};
 
-export default function HistoryScreen() {
+const HistoryScreen = () => {
   const { deviceId } = useAuth();
   const [selectedDate, setSelectedDate] = useState(getToday());
   const [records, setRecords] = useState<MealRecord[]>([]);
@@ -246,7 +246,9 @@ export default function HistoryScreen() {
       )}
     </ScrollView>
   );
-}
+};
+
+export default HistoryScreen;
 
 const styles = StyleSheet.create({
   container: {

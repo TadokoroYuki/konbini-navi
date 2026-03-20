@@ -29,7 +29,7 @@ import { getToday } from "../lib/date";
 
 const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
 
-export default function RecordScreen() {
+const RecordScreen = () => {
   const { deviceId } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMealType, setSelectedMealType] = useState<MealType>("lunch");
@@ -236,7 +236,9 @@ export default function RecordScreen() {
       />
     </View>
   );
-}
+};
+
+export default RecordScreen;
 
 const styles = StyleSheet.create({
   container: {

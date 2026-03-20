@@ -16,7 +16,7 @@ import {
 } from "../lib/types";
 import { getToday } from "../lib/date";
 
-function formatDate(dateStr: string): string {
+const formatDate = (dateStr: string): string => {
   const d = new Date(dateStr + "T00:00:00");
   const year = d.getFullYear();
   const month = d.getMonth() + 1;
@@ -24,9 +24,9 @@ function formatDate(dateStr: string): string {
   const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
   const weekday = weekdays[d.getDay()];
   return `${year}年${month}月${day}日（${weekday}）`;
-}
+};
 
-function getStatusColor(status: NutritionStatus): string {
+const getStatusColor = (status: NutritionStatus): string => {
   switch (status) {
     case "deficient":
       return "#FF9800";
@@ -35,9 +35,9 @@ function getStatusColor(status: NutritionStatus): string {
     case "excessive":
       return "#F44336";
   }
-}
+};
 
-function getStatusBgColor(status: NutritionStatus): string {
+const getStatusBgColor = (status: NutritionStatus): string => {
   switch (status) {
     case "deficient":
       return "#FFF3E0";
@@ -46,7 +46,7 @@ function getStatusBgColor(status: NutritionStatus): string {
     case "excessive":
       return "#FFEBEE";
   }
-}
+};
 
 interface NutrientCardProps {
   label: string;
@@ -54,7 +54,7 @@ interface NutrientCardProps {
   data: NutrientStatus;
 }
 
-function NutrientCard({ label, unit, data }: NutrientCardProps) {
+const NutrientCard = ({ label, unit, data }: NutrientCardProps) => {
   const ratio = data.ratio ?? data.actual / data.target;
   const progressWidth = Math.min(ratio * 100, 100);
   const color = getStatusColor(data.status);
@@ -88,9 +88,23 @@ function NutrientCard({ label, unit, data }: NutrientCardProps) {
       <Text style={styles.ratioText}>{Math.round(ratio * 100)}%</Text>
     </View>
   );
-}
+};
 
-export default function HomeScreen() {
+const getSummaryText = (
+  calories: NutrientStatus,
+  protein: NutrientStatus
+): string => {
+  const deficients: string[] = [];
+  if (calories.status === "deficient") deficients.push("カロリー");
+  if (protein.status === "deficient") deficients.push("タンパク質");
+
+  if (deficients.length === 0) {
+    return "栄養バランスが良好です。この調子で続けましょう！";
+  }
+  return `${deficients.join("と")}が不足しています。おすすめ画面で補える商品をチェックしましょう。`;
+};
+
+const HomeScreen = () => {
   const { deviceId } = useAuth();
   const today = getToday();
   const { nutrition, isLoading, refetch } = useNutrition(deviceId, today);
@@ -161,21 +175,9 @@ export default function HomeScreen() {
       )}
     </ScrollView>
   );
-}
+};
 
-function getSummaryText(
-  calories: NutrientStatus,
-  protein: NutrientStatus
-): string {
-  const deficients: string[] = [];
-  if (calories.status === "deficient") deficients.push("カロリー");
-  if (protein.status === "deficient") deficients.push("タンパク質");
-
-  if (deficients.length === 0) {
-    return "栄養バランスが良好です。この調子で続けましょう！";
-  }
-  return `${deficients.join("と")}が不足しています。おすすめ画面で補える商品をチェックしましょう。`;
-}
+export default HomeScreen;
 
 const styles = StyleSheet.create({
   container: {
