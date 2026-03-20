@@ -26,6 +26,7 @@ import {
   BRAND_LABELS,
 } from "../lib/types";
 import { getToday } from "../lib/date";
+import { pageLayout } from "../lib/page-layout";
 
 const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
 
@@ -144,6 +145,7 @@ export default function RecordScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={pageLayout.centeredContentFill}>
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <Ionicons
@@ -234,6 +236,7 @@ export default function RecordScreen() {
           ) : null
         }
       />
+      </View>
     </View>
   );
 }
