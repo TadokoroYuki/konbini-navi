@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   RefreshControl,
 } from "react-native";
+import { useFocusEffect } from "expo-router";
 import { useAuth } from "../hooks/useAuth";
 import { useNutrition } from "../hooks/useNutrition";
 import {
@@ -15,7 +16,11 @@ import {
 } from "../lib/types";
 
 function getToday(): string {
-  return new Date().toISOString().split("T")[0];
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function formatDate(dateStr: string): string {
@@ -97,6 +102,12 @@ export default function HomeScreen() {
   const today = getToday();
   const { nutrition, isLoading, refetch } = useNutrition(deviceId, today);
   const [refreshing, setRefreshing] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
