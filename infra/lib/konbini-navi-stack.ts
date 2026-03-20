@@ -1,121 +1,159 @@
 import * as cdk from "aws-cdk-lib";
-import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
-import * as lambda from "aws-cdk-lib/aws-lambda";
-import * as apigateway from "aws-cdk-lib/aws-apigateway";
+import * as ec2 from "aws-cdk-lib/aws-ec2";
+import * as ecr from "aws-cdk-lib/aws-ecr";
+import * as codepipeline from "aws-cdk-lib/aws-codepipeline";
+import * as codepipeline_actions from "aws-cdk-lib/aws-codepipeline-actions";
+import * as codebuild from "aws-cdk-lib/aws-codebuild";
+import * as codeconnections from "aws-cdk-lib/aws-codeconnections";
+import * as iam from "aws-cdk-lib/aws-iam";
 import { Construct } from "constructs";
-import * as path from "path";
 
 export class KonbiniNaviStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     // ----------------------------------------------------------------
-    // DynamoDB Tables
+    // VPC（パブリック/プライベートサブネット）
     // ----------------------------------------------------------------
+    const vpc = new ec2.Vpc(this, "KonbiniNaviVpc", {
+      cidr: "10.0.0.0/16",
+      maxAzs: 2,
+      natGateways: 1,
+      subnetConfiguration: [
+        {
+          cidrMask: 24,
+          name: "PublicSubnet",
+          subnetType: ec2.SubnetType.PUBLIC,
+        },
+        {
+          cidrMask: 24,
+          name: "PrivateSubnet",
+          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+        },
+      ],
+    });
 
-    const productsTable = new dynamodb.Table(this, "ProductsTable", {
-      tableName: "konbini-products",
-      partitionKey: { name: "productId", type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    // ----------------------------------------------------------------
+    // ECR Repository
+    // ----------------------------------------------------------------
+    const ecrRepo = new ecr.Repository(this, "KonbiniNaviRepo", {
+      repositoryName: "konbini-navi-api",
       removalPolicy: cdk.RemovalPolicy.DESTROY,
-    });
-
-    productsTable.addGlobalSecondaryIndex({
-      indexName: "brand-category-index",
-      partitionKey: { name: "brand", type: dynamodb.AttributeType.STRING },
-      sortKey: { name: "category", type: dynamodb.AttributeType.STRING },
-      projectionType: dynamodb.ProjectionType.ALL,
-    });
-
-    const recordsTable = new dynamodb.Table(this, "RecordsTable", {
-      tableName: "konbini-records",
-      partitionKey: { name: "userId", type: dynamodb.AttributeType.STRING },
-      sortKey: { name: "SK", type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-    });
-
-    recordsTable.addGlobalSecondaryIndex({
-      indexName: "userId-date-index",
-      partitionKey: { name: "userId", type: dynamodb.AttributeType.STRING },
-      sortKey: { name: "date", type: dynamodb.AttributeType.STRING },
-      projectionType: dynamodb.ProjectionType.ALL,
+      imageScanOnPush: true,
+      imageTagMutability: ecr.TagMutability.MUTABLE,
     });
 
     // ----------------------------------------------------------------
-    // Lambda Function
+    // CodeConnections（GitHub連携）
     // ----------------------------------------------------------------
-
-    const apiFn = new lambda.Function(this, "ApiFunction", {
-      runtime: lambda.Runtime.PROVIDED_AL2023,
-      handler: "bootstrap",
-      code: lambda.Code.fromAsset(
-        path.join(__dirname, "../../apps/api/bin/bootstrap")
-      ),
-      environment: {
-        PRODUCTS_TABLE: productsTable.tableName,
-        RECORDS_TABLE: recordsTable.tableName,
-      },
-      memorySize: 256,
-      timeout: cdk.Duration.seconds(30),
-    });
-
-    productsTable.grantReadWriteData(apiFn);
-    recordsTable.grantReadWriteData(apiFn);
+    const codeConnection = new codeconnections.CfnConnection(
+      this,
+      "GitHubConnection",
+      {
+        connectionName: "konbini-navi-github",
+        providerType: "GitHub",
+      }
+    );
 
     // ----------------------------------------------------------------
-    // API Gateway
+    // CodeBuild Project（Goビルド→ECRプッシュ）
     // ----------------------------------------------------------------
+    const buildProject = new codebuild.PipelineProject(
+      this,
+      "KonbiniNaviBuild",
+      {
+        // 修正: 外部の buildspec.yml を読み込む
+        buildSpec: codebuild.BuildSpec.fromSourceFilename("apps/api/buildspec.yml"),
+        environment: {
+          buildImage: codebuild.LinuxBuildImage.STANDARD_7_0,
+          privileged: true,
+        },
+        // 修正: CDKで作ったECRのURLを、環境変数としてCodeBuildに注入する
+        environmentVariables: {
+          REPOSITORY_URI: { value: ecrRepo.repositoryUri },
+        },
+      }
+    );
 
-    const api = new apigateway.RestApi(this, "KonbiniNaviApi", {
-      restApiName: "Konbini Navi API",
-      deployOptions: {
-        stageName: "v1",
-      },
-      defaultCorsPreflightOptions: {
-        allowOrigins: apigateway.Cors.ALL_ORIGINS,
-        allowMethods: apigateway.Cors.ALL_METHODS,
-        allowHeaders: [
-          "Content-Type",
-          "X-Amz-Date",
-          "Authorization",
-          "X-Api-Key",
-          "X-Device-Id",
+    // CodeBuildにECRプッシュ権限を付与
+    ecrRepo.grantPullPush(buildProject);
+
+    // CodeBuildにSecretsManagerアクセス権限を付与
+    buildProject.role?.addToPrincipalPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: [
+          `arn:aws:secretsmanager:${this.region}:${this.account}:secret:github-pat-*`,
         ],
-      },
+      })
+    );
+
+    // ----------------------------------------------------------------
+    // CodePipeline
+    // ----------------------------------------------------------------
+    const sourceArtifact = new codepipeline.Artifact("SourceArtifact");
+    const buildArtifact = new codepipeline.Artifact("BuildArtifact");
+
+    const pipeline = new codepipeline.Pipeline(this, "KonbiniNaviPipeline", {
+      pipelineName: "konbini-navi-pipeline",
+      crossAccountKeys: false,
     });
 
-    const proxyResource = api.root.addResource("{proxy+}");
-    proxyResource.addMethod(
-      "ANY",
-      new apigateway.LambdaIntegration(apiFn, {
-        proxy: true,
-      })
-    );
+    // Source Stage
+    pipeline.addStage({
+      stageName: "Source",
+      actions: [
+        new codepipeline_actions.CodeStarConnectionsSourceAction({
+          actionName: "GitHub",
+          owner: "TadokoroYuki",
+          repo: "konbini-navi",
+          branch: "main",
+          output: sourceArtifact,
+          connectionArn: codeConnection.attrConnectionArn,
+        }),
+      ],
+    });
 
-    // Root resource also needs Lambda integration
-    api.root.addMethod(
-      "ANY",
-      new apigateway.LambdaIntegration(apiFn, {
-        proxy: true,
-      })
-    );
+    // Build Stage
+    pipeline.addStage({
+      stageName: "Build",
+      actions: [
+        new codepipeline_actions.CodeBuildAction({
+          actionName: "Build",
+          project: buildProject,
+          input: sourceArtifact,
+          outputs: [buildArtifact],
+        }),
+      ],
+    });
 
     // ----------------------------------------------------------------
     // Outputs
     // ----------------------------------------------------------------
-
-    new cdk.CfnOutput(this, "ApiUrl", {
-      value: api.url,
-      description: "API Gateway URL",
+    new cdk.CfnOutput(this, "VpcId", {
+      value: vpc.vpcId,
+      description: "VPC ID",
     });
 
-    new cdk.CfnOutput(this, "ProductsTableName", {
-      value: productsTable.tableName,
+    new cdk.CfnOutput(this, "ECRRepositoryUri", {
+      value: ecrRepo.repositoryUri,
+      description: "ECR Repository URI",
     });
 
-    new cdk.CfnOutput(this, "RecordsTableName", {
-      value: recordsTable.tableName,
+    new cdk.CfnOutput(this, "ECRRepositoryName", {
+      value: ecrRepo.repositoryName,
+      description: "ECR Repository Name",
+    });
+
+    new cdk.CfnOutput(this, "CodeConnectionArn", {
+      value: codeConnection.attrConnectionArn,
+      description: "CodeConnections ARN（GitHub連携用）",
+    });
+
+    new cdk.CfnOutput(this, "CodePipelineUrl", {
+      value: `https://console.aws.amazon.com/codesuite/codepipeline/pipelines/${pipeline.pipelineName}/view`,
+      description: "CodePipeline Console URL",
     });
   }
 }

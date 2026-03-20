@@ -1,0 +1,49 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo "Logging in to Amazon ECR..."
+      # 修正: AWS CLIを使って現在のアカウントIDを動的に取得する
+      - AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=${COMMIT_HASH:=latest}
+      - echo "Retrieving GitHub token from Secrets Manager..."
+      - GITHUB_TOKEN=$(aws secretsmanager get-secret-value --secret-id github-pat --query SecretString --output text --region $AWS_DEFAULT_REGION | jq -r '.["github-token"]')
+      - git config --global credential.helper store
+      - echo "https://x-access-token:$GITHUB_TOKEN@github.com" > ~/.git-credentials
+
+  build:
+    commands:
+      - echo "Build started on `date`"
+      - echo "Building the Docker image..."
+      # REPOSITORY_URI はCDKの環境変数から自動で渡ってきます
+      - cd apps/api
+      - docker build -t $REPOSITORY_URI:latest .
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+
+  post_build:
+    commands:
+      - echo "Build completed on `date`"
+      - echo "Pushing the Docker images..."
+      - docker push $REPOSITORY_URI:latest
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - echo "Updating Kubernetes manifests..."
+      - cd $CODEBUILD_SRC_DIR
+      # Update deployment.yaml with new image tag
+      - sed -i "s|image: $REPOSITORY_URI:.*|image: $REPOSITORY_URI:$IMAGE_TAG|g" infra/k8s/deployment.yaml
+      # Configure git
+      - git config --global user.email "codebuild@aws.amazon.com"
+      - git config --global user.name "AWS CodeBuild"
+      # Commit and push changes
+      - git add infra/k8s/deployment.yaml
+      - git commit -m "Update image tag to $IMAGE_TAG [skip ci]" || echo "No changes to commit"
+      - git push origin HEAD:$CODEBUILD_WEBHOOK_HEAD_REF || echo "Failed to push, but continuing..."
+      - echo "Writing image definitions file..."
+      - printf '[{"name":"konbini-navi-api","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+
+artifacts:
+  files:
+    # 修正: ルートのものを指定する
+    - imagedefinitions.json
