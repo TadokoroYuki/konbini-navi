@@ -31,11 +31,20 @@ spec:
         - name: DB_PORT
           value: "5432"
         - name: DB_USER
-          value: "postgres"
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_USER
         - name: DB_PASSWORD
-          value: "postgres"
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
         - name: DB_NAME
-          value: "konbini_navi"
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_DB
         resources:
           requests:
             memory: "128Mi"

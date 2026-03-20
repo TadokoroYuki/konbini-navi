@@ -106,8 +106,8 @@ export class KonbiniNaviStack extends cdk.Stack {
       actions: [
         new codepipeline_actions.CodeStarConnectionsSourceAction({
           actionName: "GitHub",
-          owner: "warisuno", // GitHubユーザー名に変更してください
-          repo: "konbini-navi", // リポジトリ名に変更してください
+          owner: "TadokoroYuki",
+          repo: "konbini-navi",
           branch: "main",
           output: sourceArtifact,
           connectionArn: codeConnection.attrConnectionArn,
