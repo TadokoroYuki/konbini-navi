@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import "source-map-support/register";
 import * as cdk from "aws-cdk-lib";
 import { KonbiniNaviStack } from "../lib/konbini-navi-stack";
 
@@ -10,3 +9,5 @@ new KonbiniNaviStack(app, "KonbiniNaviStack", {
     region: "ap-northeast-1",
   },
 });
+
+app.synth();

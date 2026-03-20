@@ -3,7 +3,9 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": ".",
-    "types": ["node"]
+    "types": ["node"],
+    "module": "CommonJS",
+    "moduleResolution": "node"
   },
   "include": ["bin/**/*", "lib/**/*"]
 }
