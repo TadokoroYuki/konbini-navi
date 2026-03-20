@@ -7,10 +7,15 @@ CREATE TABLE IF NOT EXISTS products (
   name VARCHAR(255) NOT NULL,
   brand VARCHAR(100),
   category VARCHAR(100),
+  price INTEGER DEFAULT 0,
   calories NUMERIC(10, 2),
   protein NUMERIC(10, 2),
   fat NUMERIC(10, 2),
   carbs NUMERIC(10, 2),
+  fiber NUMERIC(10, 2),
+  salt NUMERIC(10, 2),
+  image_url TEXT,
+  description TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -21,6 +26,7 @@ CREATE TABLE IF NOT EXISTS records (
   record_id VARCHAR(255) NOT NULL UNIQUE,
   product_id VARCHAR(255) NOT NULL,
   date DATE NOT NULL,
+  meal_type VARCHAR(50) NOT NULL DEFAULT 'snack',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (product_id) REFERENCES products(product_id)
 );

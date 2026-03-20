@@ -1,0 +1,5 @@
+# Build binaries (root level only)
+/products
+/records
+/nutrition
+/recommendations
