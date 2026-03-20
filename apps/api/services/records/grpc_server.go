@@ -38,6 +38,20 @@ func (s *GRPCServer) ListRecords(ctx context.Context, req *recordpb.ListRecordsR
 	return &recordpb.ListRecordsResponse{Records: pbRecords}, nil
 }
 
+func (s *GRPCServer) ListAllRecords(ctx context.Context, req *recordpb.ListAllRecordsRequest) (*recordpb.ListRecordsResponse, error) {
+	records, err := s.repo.ListByUserAndDate(ctx, req.GetUserId(), "")
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to list all records: %v", err)
+	}
+
+	pbRecords := make([]*recordpb.Record, len(records))
+	for i, rec := range records {
+		pbRecords[i] = toProtoRecord(&rec)
+	}
+
+	return &recordpb.ListRecordsResponse{Records: pbRecords}, nil
+}
+
 func (s *GRPCServer) CreateRecord(ctx context.Context, req *recordpb.CreateRecordRequest) (*recordpb.Record, error) {
 	// Verify product exists
 	product, err := s.productClient.GetByID(ctx, req.GetProductId())

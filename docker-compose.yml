@@ -34,8 +34,7 @@ services:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
-      args:
-        SERVICE_NAME: products
+    command: ["./products"]
     container_name: konbini-products
     environment:
       HTTP_PORT: "7111"
@@ -53,8 +52,7 @@ services:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
-      args:
-        SERVICE_NAME: records
+    command: ["./records"]
     container_name: konbini-records
     environment:
       HTTP_PORT: "8810"
@@ -75,8 +73,7 @@ services:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
-      args:
-        SERVICE_NAME: nutrition
+    command: ["./nutrition"]
     container_name: konbini-nutrition
     environment:
       HTTP_PORT: "1056"
@@ -95,20 +92,22 @@ services:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
-      args:
-        SERVICE_NAME: recommendations
+    command: ["./recommendations"]
     container_name: konbini-recommendations
     environment:
       HTTP_PORT: "2525"
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/konbini_navi?sslmode=disable
       NUTRITION_GRPC_ADDR: nutrition:1057
       PRODUCTS_GRPC_ADDR: products:7112
+      RECORDS_GRPC_ADDR: records:8811
     ports:
       - "2525:2525"
     depends_on:
       nutrition:
         condition: service_started
       products:
+        condition: service_started
+      records:
         condition: service_started
 
   api-gateway:
