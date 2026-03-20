@@ -18,20 +18,20 @@ import {
 const BASE_URL: string =
   Constants.expoConfig?.extra?.apiUrl ?? "http://localhost:8080/v1";
 
-let deviceId: string | null = null;
+let authToken: string | null = null;
 
-export function setDeviceId(id: string): void {
-  deviceId = id;
-}
+export const setAuthToken = (token: string | null): void => {
+  authToken = token;
+};
 
-async function request<T>(
+const request = async <T>(
   path: string,
   options: RequestInit = {}
-): Promise<T> {
+): Promise<T> => {
   const url = `${BASE_URL}${path}`;
   const headers: HeadersInit = {
     "Content-Type": "application/json",
-    ...(deviceId ? { "X-Device-Id": deviceId } : {}),
+    ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     ...(options.headers as Record<string, string>),
   };
 
@@ -50,7 +50,7 @@ async function request<T>(
   }
 
   return response.json();
-}
+};
 
 // --- Products ---
 
@@ -61,9 +61,9 @@ export interface SearchProductsParams {
   limit?: number;
 }
 
-export async function searchProducts(
+export const searchProducts = async (
   params: SearchProductsParams = {}
-): Promise<Product[]> {
+): Promise<Product[]> => {
   try {
     const query = new URLSearchParams();
     if (params.q) query.set("q", params.q);
@@ -95,9 +95,9 @@ export async function searchProducts(
     }
     return filtered.slice(0, params.limit ?? 20);
   }
-}
+};
 
-export async function getProduct(productId: string): Promise<Product> {
+export const getProduct = async (productId: string): Promise<Product> => {
   try {
     return await request<Product>(`/products/${productId}`);
   } catch {
@@ -105,14 +105,14 @@ export async function getProduct(productId: string): Promise<Product> {
     if (!product) throw new Error("商品が見つかりません");
     return product;
   }
-}
+};
 
 // --- Records ---
 
-export async function listRecords(
+export const listRecords = async (
   userId: string,
   date: string
-): Promise<MealRecord[]> {
+): Promise<MealRecord[]> => {
   try {
     const result = await request<{ records: MealRecord[] }>(
       `/users/${userId}/records?date=${date}`
@@ -121,12 +121,12 @@ export async function listRecords(
   } catch {
     return mockRecords.filter((r) => r.date === date);
   }
-}
+};
 
-export async function createRecord(
+export const createRecord = async (
   userId: string,
   data: CreateRecordRequest
-): Promise<MealRecord> {
+): Promise<MealRecord> => {
   try {
     return await request<MealRecord>(`/users/${userId}/records`, {
       method: "POST",
@@ -147,12 +147,12 @@ export async function createRecord(
     };
     return record;
   }
-}
+};
 
-export async function deleteRecord(
+export const deleteRecord = async (
   userId: string,
   recordId: string
-): Promise<void> {
+): Promise<void> => {
   try {
     await request<void>(`/users/${userId}/records/${recordId}`, {
       method: "DELETE",
@@ -160,14 +160,14 @@ export async function deleteRecord(
   } catch {
     // Mock: no-op
   }
-}
+};
 
 // --- Nutrition ---
 
-export async function getNutrition(
+export const getNutrition = async (
   userId: string,
   date: string
-): Promise<NutritionSummary> {
+): Promise<NutritionSummary> => {
   try {
     return await request<NutritionSummary>(
       `/users/${userId}/nutrition?date=${date}`
@@ -175,14 +175,14 @@ export async function getNutrition(
   } catch {
     return { ...mockNutritionSummary, date };
   }
-}
+};
 
 // --- Recommendations ---
 
-export async function getRecommendations(
+export const getRecommendations = async (
   userId: string,
   date: string
-): Promise<Recommendation[]> {
+): Promise<Recommendation[]> => {
   try {
     const result = await request<{ recommendations: Recommendation[] }>(
       `/users/${userId}/recommendations?date=${date}`
@@ -191,4 +191,4 @@ export async function getRecommendations(
   } catch {
     return mockRecommendations;
   }
-}
+};
