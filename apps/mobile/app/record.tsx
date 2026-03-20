@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Platform,
   FlatList,
   ActivityIndicator,
 } from "react-native";
@@ -84,32 +85,48 @@ export default function RecordScreen() {
   const handleRecord = async (product: Product) => {
     if (!deviceId) return;
 
-    Alert.alert(
-      "食事を記録",
-      `${product.name}を${MEAL_TYPE_LABELS[selectedMealType]}として記録しますか？`,
-      [
-        { text: "キャンセル", style: "cancel" },
-        {
-          text: "記録する",
-          onPress: async () => {
-            setIsRecording(true);
-            try {
-              const record = await createRecord(deviceId, {
-                productId: product.productId,
-                date: today,
-                mealType: selectedMealType,
-              });
-              setTodayRecords((prev) => [...prev, record]);
-              Alert.alert("記録完了", `${product.name}を記録しました。`);
-            } catch {
-              Alert.alert("エラー", "記録に失敗しました。");
-            } finally {
-              setIsRecording(false);
-            }
-          },
-        },
-      ]
-    );
+    const doRecord = async () => {
+      setIsRecording(true);
+      try {
+        const record = await createRecord(deviceId, {
+          productId: product.productId,
+          date: today,
+          mealType: selectedMealType,
+        });
+        setTodayRecords((prev) => [...prev, record]);
+        if (Platform.OS === "web") {
+          window.alert(`${product.name}を記録しました。`);
+        } else {
+          Alert.alert("記録完了", `${product.name}を記録しました。`);
+        }
+      } catch {
+        if (Platform.OS === "web") {
+          window.alert("記録に失敗しました。");
+        } else {
+          Alert.alert("エラー", "記録に失敗しました。");
+        }
+      } finally {
+        setIsRecording(false);
+      }
+    };
+
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(
+        `${product.name}を${MEAL_TYPE_LABELS[selectedMealType]}として記録しますか？`
+      );
+      if (confirmed) {
+        doRecord();
+      }
+    } else {
+      Alert.alert(
+        "食事を記録",
+        `${product.name}を${MEAL_TYPE_LABELS[selectedMealType]}として記録しますか？`,
+        [
+          { text: "キャンセル", style: "cancel" },
+          { text: "記録する", onPress: doRecord },
+        ]
+      );
+    }
   };
 
   const renderProductItem = ({ item }: { item: Product }) => (
