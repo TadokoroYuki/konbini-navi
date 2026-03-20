@@ -29,15 +29,5 @@ phases:
       - docker push $REPOSITORY_URI:latest
       - docker push $REPOSITORY_URI:$IMAGE_TAG
       - echo "Docker images pushed successfully"
-      - echo "Updating K8s manifests with new image tag..."
-      - cd $CODEBUILD_SRC_DIR
-      # Update all deployment YAML files with new image tag
-      - 'sed -i "s|image: 974857491219.dkr.ecr.ap-northeast-1.amazonaws.com/konbini-navi-api:.*|image: $REPOSITORY_URI:$IMAGE_TAG|g" infra/k8s/*-deployment.yaml'
-      # Configure git
-      - git config --global user.email "codebuild@aws.amazon.com"
-      - git config --global user.name "AWS CodeBuild"
-      # Commit and push changes to trigger ArgoCD sync
-      - git add infra/k8s/*-deployment.yaml
-      - 'git commit -m "chore: update image tag to $IMAGE_TAG" || echo "No changes to commit"'
-      - 'git push origin HEAD:main || echo "Failed to push, but continuing..."'
-      - echo "K8s manifests updated and pushed to main"
+      - echo "Image tag $IMAGE_TAG pushed to ECR"
+      - echo "ArgoCD Image Updater will automatically detect and deploy the new image"
