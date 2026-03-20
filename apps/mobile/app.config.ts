@@ -1,15 +1,11 @@
 import { ExpoConfig, ConfigContext } from "expo/config";
 
-const IS_PROD = process.env.APP_VARIANT === "production";
-
 const getApiUrl = (): string => {
+  // Priority: explicit env var > default to local
   if (process.env.API_URL) {
     return process.env.API_URL;
   }
-  if (IS_PROD) {
-    return "https://osjsexo43j.execute-api.us-east-1.amazonaws.com/prod/v1";
-  }
-  // Default to local API gateway for development
+  // Default: docker-compose api-gateway on localhost
   return "http://localhost:8080/v1";
 };
 
