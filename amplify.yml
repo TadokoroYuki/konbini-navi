@@ -1,0 +1,21 @@
+version: 1
+
+applications:
+  - appRoot: apps/mobile
+    envName: prod
+    buildSpec: |
+      version: 0.1
+      phases:
+        install:
+          commands:
+            - echo "Installing dependencies..."
+            - npm install -g expo-cli
+            - npm ci
+        build:
+          commands:
+            - echo "Building Expo Web..."
+            - cd apps/mobile && npx expo export:web --output-dir dist
+      artifacts:
+        files:
+          - '**/*'
+        baseDirectory: apps/mobile/dist
