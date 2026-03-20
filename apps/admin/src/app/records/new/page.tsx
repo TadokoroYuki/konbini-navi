@@ -7,7 +7,6 @@ async function action(_prev: unknown, formData: FormData) {
   try {
     await createRecord({
       user_id: formData.get("user_id") as string,
-      record_id: formData.get("record_id") as string,
       product_id: formData.get("product_id") as string,
       date: formData.get("date") as string,
       meal_type: formData.get("meal_type") as string,

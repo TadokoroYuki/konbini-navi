@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"math"
 	"net/http"
@@ -10,6 +12,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	_ "github.com/lib/pq"
 
 	nutritionpb "github.com/TadokoroYuki/konbini-navi/apps/api/gen/nutrition"
 	productpb "github.com/TadokoroYuki/konbini-navi/apps/api/gen/product"
@@ -44,9 +48,24 @@ const (
 
 func main() {
 	httpPort := getEnv("HTTP_PORT", "2525")
+	dbURL := os.Getenv("DATABASE_URL")
 	nutritionAddr := getEnv("NUTRITION_GRPC_ADDR", "localhost:1057")
 	productsAddr := getEnv("PRODUCTS_GRPC_ADDR", "localhost:7112")
 	recordsAddr := getEnv("RECORDS_GRPC_ADDR", "localhost:8811")
+
+	if dbURL == "" {
+		log.Fatal("DATABASE_URL is required")
+	}
+
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatalf("failed to connect to database: %v", err)
+	}
+	defer db.Close()
+
+	if err := db.Ping(); err != nil {
+		log.Fatalf("failed to ping database: %v", err)
+	}
 
 	nutritionConn, err := grpc.NewClient(nutritionAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -75,82 +94,67 @@ func main() {
 			date = time.Now().Format("2006-01-02")
 		}
 
-		// 1. 当日の栄養サマリーを取得 (gRPC → nutrition)
-		summaryResp, err := nutritionClient.GetNutrition(r.Context(), &nutritionpb.GetNutritionRequest{
-			UserId: userID,
-			Date:   date,
-		})
-		if err != nil {
-			log.Printf("nutrition gRPC error: %v", err)
-			writeJSON(w, 500, map[string]string{"error": "failed to get nutrition"})
+		// キャッシュ確認: recommendations テーブルから取得
+		cached, err := getCachedRecommendation(r.Context(), db, userID)
+		if err == nil && cached != nil {
+			writeJSON(w, 200, map[string]interface{}{
+				"recommendation": cached,
+			})
 			return
 		}
-		summary := nutrition.FromProtoNutritionSummary(summaryResp)
 
-		// 2. 全商品を取得 (gRPC → products)
-		productsResp, err := productsClient.SearchProducts(r.Context(), &productpb.SearchProductsRequest{Limit: 100})
+		// キャッシュなし → リアルタイム計算
+		best, err := computeRecommendation(r.Context(), nutritionClient, productsClient, recordsClient, userID, date)
 		if err != nil {
-			log.Printf("products gRPC error: %v", err)
-			writeJSON(w, 500, map[string]string{"error": "failed to get products"})
+			log.Printf("compute recommendation error: %v", err)
+			writeJSON(w, 500, map[string]string{"error": err.Error()})
 			return
 		}
-		allProducts := make([]model.Product, len(productsResp.GetProducts()))
-		for i, pb := range productsResp.GetProducts() {
-			allProducts[i] = products.FromProtoProduct(pb)
-		}
 
-		// 3. ユーザーの全履歴を取得 (gRPC → records)
-		recordsResp, err := recordsClient.ListAllRecords(r.Context(), &recordpb.ListAllRecordsRequest{
-			UserId: userID,
-		})
-		if err != nil {
-			log.Printf("records gRPC error: %v", err)
-			writeJSON(w, 500, map[string]string{"error": "failed to get records"})
-			return
-		}
-		allRecords := make([]model.Record, len(recordsResp.GetRecords()))
-		for i, pb := range recordsResp.GetRecords() {
-			allRecords[i] = records.FromProtoRecord(pb)
-		}
-
-		// 4. ユーザーニーズベクトルを構築
-		userVec := buildUserVector(&summary, allRecords)
-
-		// 5. 各商品をスコアリング
-		type scored struct {
-			product model.Product
-			score   float64
-		}
-		var results []scored
-		for _, p := range allProducts {
-			pVec := buildProductVector(p)
-			score := alphaWeight*cosineSim(userVec[:nutritionDims], pVec[:nutritionDims]) +
-				betaWeight*cosineSim(userVec[nutritionDims:], pVec[nutritionDims:])
-			if score > 0 {
-				results = append(results, scored{product: p, score: score})
-			}
-		}
-
-		// ソート (降順)
-		for i := 0; i < len(results); i++ {
-			maxIdx := i
-			for j := i + 1; j < len(results); j++ {
-				if results[j].score > results[maxIdx].score {
-					maxIdx = j
-				}
-			}
-			results[i], results[maxIdx] = results[maxIdx], results[i]
-		}
-
-		// 最高スコア商品をレスポンス
-		if len(results) == 0 {
+		if best == nil {
 			writeJSON(w, 200, map[string]interface{}{
 				"recommendation": nil,
 			})
 			return
 		}
 
-		best := results[0]
+		// UPSERT to recommendations table
+		if err := upsertRecommendation(r.Context(), db, userID, best.product.ProductID, date, best.score); err != nil {
+			log.Printf("failed to upsert recommendation: %v", err)
+		}
+
+		writeJSON(w, 200, map[string]interface{}{
+			"recommendation": map[string]interface{}{
+				"product": best.product,
+				"score":   math.Round(best.score*100) / 100,
+			},
+		})
+	})
+
+	mux.HandleFunc("POST /v1/users/{userId}/recommendations/refresh", func(w http.ResponseWriter, r *http.Request) {
+		userID := r.PathValue("userId")
+		date := time.Now().Format("2006-01-02")
+
+		// キャッシュを削除
+		_, _ = db.ExecContext(r.Context(), "DELETE FROM recommendations WHERE user_id = $1", userID)
+
+		// 再計算
+		best, err := computeRecommendation(r.Context(), nutritionClient, productsClient, recordsClient, userID, date)
+		if err != nil {
+			log.Printf("refresh recommendation error: %v", err)
+			writeJSON(w, 500, map[string]string{"error": err.Error()})
+			return
+		}
+
+		if best == nil {
+			writeJSON(w, 200, map[string]interface{}{"recommendation": nil})
+			return
+		}
+
+		if err := upsertRecommendation(r.Context(), db, userID, best.product.ProductID, date, best.score); err != nil {
+			log.Printf("failed to upsert recommendation: %v", err)
+		}
+
 		writeJSON(w, 200, map[string]interface{}{
 			"recommendation": map[string]interface{}{
 				"product": best.product,
@@ -182,6 +186,114 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	httpSrv.Shutdown(ctx)
+}
+
+type scored struct {
+	product model.Product
+	score   float64
+}
+
+// getCachedRecommendation は recommendations テーブルからキャッシュを取得する
+func getCachedRecommendation(ctx context.Context, db *sql.DB, userID string) (map[string]interface{}, error) {
+	var productID string
+	var score float64
+	var date string
+	err := db.QueryRowContext(ctx,
+		"SELECT product_id, score, date FROM recommendations WHERE user_id = $1", userID,
+	).Scan(&productID, &score, &date)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{
+		"product_id": productID,
+		"score":      score,
+		"date":       date,
+	}, nil
+}
+
+// upsertRecommendation は recommendations テーブルに UPSERT する
+func upsertRecommendation(ctx context.Context, db *sql.DB, userID, productID, date string, score float64) error {
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO recommendations (user_id, product_id, date, score, created_at)
+		VALUES ($1, $2, $3, $4, NOW())
+		ON CONFLICT (user_id) DO UPDATE SET
+			product_id = EXCLUDED.product_id,
+			date = EXCLUDED.date,
+			score = EXCLUDED.score,
+			created_at = NOW()
+	`, userID, productID, date, math.Round(score*100)/100)
+	return err
+}
+
+// computeRecommendation は gRPC 経由でデータを取得しスコアリングする
+func computeRecommendation(
+	ctx context.Context,
+	nutritionClient nutritionpb.NutritionServiceClient,
+	productsClient productpb.ProductServiceClient,
+	recordsClient recordpb.RecordServiceClient,
+	userID, date string,
+) (*scored, error) {
+	// 1. 当日の栄養サマリーを取得
+	summaryResp, err := nutritionClient.GetNutrition(ctx, &nutritionpb.GetNutritionRequest{
+		UserId: userID,
+		Date:   date,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get nutrition: %w", err)
+	}
+	summary := nutrition.FromProtoNutritionSummary(summaryResp)
+
+	// 2. 全商品を取得
+	productsResp, err := productsClient.SearchProducts(ctx, &productpb.SearchProductsRequest{Limit: 100})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get products: %w", err)
+	}
+	allProducts := make([]model.Product, len(productsResp.GetProducts()))
+	for i, pb := range productsResp.GetProducts() {
+		allProducts[i] = products.FromProtoProduct(pb)
+	}
+
+	// 3. ユーザーの全履歴を取得
+	recordsResp, err := recordsClient.ListAllRecords(ctx, &recordpb.ListAllRecordsRequest{
+		UserId: userID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get records: %w", err)
+	}
+	allRecords := make([]model.Record, len(recordsResp.GetRecords()))
+	for i, pb := range recordsResp.GetRecords() {
+		allRecords[i] = records.FromProtoRecord(pb)
+	}
+
+	// 4. ユーザーニーズベクトルを構築
+	userVec := buildUserVector(&summary, allRecords)
+
+	// 5. 各商品をスコアリング
+	var results []scored
+	for _, p := range allProducts {
+		pVec := buildProductVector(p)
+		s := alphaWeight*cosineSim(userVec[:nutritionDims], pVec[:nutritionDims]) +
+			betaWeight*cosineSim(userVec[nutritionDims:], pVec[nutritionDims:])
+		if s > 0 {
+			results = append(results, scored{product: p, score: s})
+		}
+	}
+
+	// ソート (降順)
+	for i := 0; i < len(results); i++ {
+		maxIdx := i
+		for j := i + 1; j < len(results); j++ {
+			if results[j].score > results[maxIdx].score {
+				maxIdx = j
+			}
+		}
+		results[i], results[maxIdx] = results[maxIdx], results[i]
+	}
+
+	if len(results) == 0 {
+		return nil, nil
+	}
+	return &results[0], nil
 }
 
 // buildUserVector は16次元のユーザーニーズベクトルを構築する

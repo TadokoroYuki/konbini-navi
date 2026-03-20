@@ -14,12 +14,14 @@ type Props = {
     meal_type?: string;
   };
   submitLabel: string;
+  showRecordId?: boolean;
 };
 
 export default function RecordForm({
   action,
   defaultValues = {},
   submitLabel,
+  showRecordId = false,
 }: Props) {
   const [state, formAction, pending] = useActionState(action, {});
 
@@ -37,15 +39,17 @@ export default function RecordForm({
           className="w-full border rounded p-2"
         />
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">record_id</label>
-        <input
-          name="record_id"
-          required
-          defaultValue={defaultValues.record_id ?? ""}
-          className="w-full border rounded p-2"
-        />
-      </div>
+      {showRecordId && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">record_id</label>
+          <input
+            name="record_id"
+            required
+            defaultValue={defaultValues.record_id ?? ""}
+            className="w-full border rounded p-2"
+          />
+        </div>
+      )}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">product_id</label>
         <input

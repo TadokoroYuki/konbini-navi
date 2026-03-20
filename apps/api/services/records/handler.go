@@ -3,6 +3,7 @@ package records
 import (
 	"crypto/rand"
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -13,12 +14,35 @@ import (
 )
 
 type Handler struct {
-	repo          *Repository
-	productClient *ProductClient
+	repo               *Repository
+	productClient      *ProductClient
+	recommendationsURL string
 }
 
-func NewHandler(repo *Repository, productClient *ProductClient) *Handler {
-	return &Handler{repo: repo, productClient: productClient}
+func NewHandler(repo *Repository, productClient *ProductClient, recommendationsURL string) *Handler {
+	return &Handler{repo: repo, productClient: productClient, recommendationsURL: recommendationsURL}
+}
+
+// refreshRecommendation は recommendations サービスに再計算を非同期で依頼する
+func (h *Handler) refreshRecommendation(userID string) {
+	if h.recommendationsURL == "" {
+		return
+	}
+	go func() {
+		url := h.recommendationsURL + "/v1/users/" + userID + "/recommendations/refresh"
+		req, err := http.NewRequest("POST", url, nil)
+		if err != nil {
+			log.Printf("failed to create refresh request: %v", err)
+			return
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			log.Printf("failed to refresh recommendation for %s: %v", userID, err)
+			return
+		}
+		resp.Body.Close()
+		log.Printf("refreshed recommendation for user %s (status: %d)", userID, resp.StatusCode)
+	}()
 }
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
@@ -87,6 +111,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.refreshRecommendation(userID)
 	httputil.WriteJSON(w, http.StatusCreated, record)
 }
 
@@ -99,6 +124,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.refreshRecommendation(userID)
 	w.WriteHeader(http.StatusNoContent)
 }
 

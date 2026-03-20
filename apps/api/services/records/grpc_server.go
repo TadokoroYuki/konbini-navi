@@ -3,6 +3,8 @@ package records
 import (
 	"context"
 	"crypto/rand"
+	"log"
+	"net/http"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -16,12 +18,33 @@ import (
 
 type GRPCServer struct {
 	recordpb.UnimplementedRecordServiceServer
-	repo          *Repository
-	productClient *ProductClient
+	repo               *Repository
+	productClient      *ProductClient
+	recommendationsURL string
 }
 
-func NewGRPCServer(repo *Repository, productClient *ProductClient) *GRPCServer {
-	return &GRPCServer{repo: repo, productClient: productClient}
+func NewGRPCServer(repo *Repository, productClient *ProductClient, recommendationsURL string) *GRPCServer {
+	return &GRPCServer{repo: repo, productClient: productClient, recommendationsURL: recommendationsURL}
+}
+
+func (s *GRPCServer) refreshRecommendation(userID string) {
+	if s.recommendationsURL == "" {
+		return
+	}
+	go func() {
+		url := s.recommendationsURL + "/v1/users/" + userID + "/recommendations/refresh"
+		req, err := http.NewRequest("POST", url, nil)
+		if err != nil {
+			log.Printf("failed to create refresh request: %v", err)
+			return
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			log.Printf("failed to refresh recommendation for %s: %v", userID, err)
+			return
+		}
+		resp.Body.Close()
+	}()
 }
 
 func (s *GRPCServer) ListRecords(ctx context.Context, req *recordpb.ListRecordsRequest) (*recordpb.ListRecordsResponse, error) {
@@ -75,6 +98,7 @@ func (s *GRPCServer) CreateRecord(ctx context.Context, req *recordpb.CreateRecor
 		return nil, status.Errorf(codes.Internal, "failed to create record: %v", err)
 	}
 
+	s.refreshRecommendation(req.GetUserId())
 	return toProtoRecord(record), nil
 }
 
@@ -82,6 +106,7 @@ func (s *GRPCServer) DeleteRecord(ctx context.Context, req *recordpb.DeleteRecor
 	if err := s.repo.Delete(ctx, req.GetUserId(), req.GetRecordId()); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to delete record: %v", err)
 	}
+	s.refreshRecommendation(req.GetUserId())
 	return &recordpb.Empty{}, nil
 }
 

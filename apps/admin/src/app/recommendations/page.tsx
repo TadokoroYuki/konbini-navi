@@ -28,6 +28,22 @@ export default async function RecommendationsPage() {
           + 新規作成
         </Link>
       </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800 space-y-2">
+        <p className="font-bold">処理フロー</p>
+        <ol className="list-decimal list-inside space-y-1">
+          <li>admin の Records ページでレコードを<strong>作成・削除</strong>する</li>
+          <li>admin → <strong>records サービス</strong> (HTTP API) にリクエストが送られる</li>
+          <li>records サービスが DB に書き込み後、<strong>recommendations サービス</strong>に再計算を依頼 (POST /refresh)</li>
+          <li>recommendations サービスが gRPC 経由で <strong>nutrition・products・records</strong> の各サービスからデータを取得</li>
+          <li>16次元ベクトルの<strong>コサイン類似度</strong>でスコアリング (栄養不足 0.6 + 味の好み 0.4)</li>
+          <li>最高スコアの商品を recommendations テーブルに <strong>UPSERT</strong> (1ユーザー1行)</li>
+        </ol>
+        <p className="text-blue-600 mt-2">
+          ※ このテーブルのデータは records の CRUD に連動して自動更新されます
+        </p>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="w-full bg-white rounded-lg shadow text-sm">
           <thead>
