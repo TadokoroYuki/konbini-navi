@@ -9,10 +9,10 @@ interface UseNutritionResult {
   refetch: () => void;
 }
 
-export function useNutrition(
+export const useNutrition = (
   userId: string | null,
   date: string
-): UseNutritionResult {
+): UseNutritionResult => {
   const [nutrition, setNutrition] = useState<NutritionSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,4 +38,4 @@ export function useNutrition(
   }, [fetchNutrition]);
 
   return { nutrition, isLoading, error, refetch: fetchNutrition };
-}
+};

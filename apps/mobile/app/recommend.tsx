@@ -19,7 +19,7 @@ import {
 } from "../lib/types";
 import { getToday } from "../lib/date";
 
-function getStatusColor(status: NutritionStatus): string {
+const getStatusColor = (status: NutritionStatus): string => {
   switch (status) {
     case "deficient":
       return "#FF9800";
@@ -28,7 +28,7 @@ function getStatusColor(status: NutritionStatus): string {
     case "excessive":
       return "#F44336";
   }
-}
+};
 
 const NUTRIENT_LABELS: Record<string, string> = {
   calories: "カロリー",
@@ -37,7 +37,7 @@ const NUTRIENT_LABELS: Record<string, string> = {
   carbs: "炭水化物",
 };
 
-export default function RecommendScreen() {
+const RecommendScreen = () => {
   const { deviceId } = useAuth();
   const today = getToday();
   const { nutrition } = useNutrition(deviceId, today);
@@ -210,7 +210,9 @@ export default function RecommendScreen() {
       )}
     </ScrollView>
   );
-}
+};
+
+export default RecommendScreen;
 
 const styles = StyleSheet.create({
   container: {

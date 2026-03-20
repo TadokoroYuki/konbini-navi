@@ -1,7 +1,8 @@
-import { Tabs } from "expo-router";
+import { Tabs, useRouter, useSegments } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { useAuth } from "../hooks/useAuth";
+import { useEffect } from "react";
 import {
   ActivityIndicator,
   View,
@@ -9,8 +10,22 @@ import {
   Text,
 } from "react-native";
 
-export default function RootLayout() {
-  const { isLoading } = useAuth();
+const RootLayout = () => {
+  const { isLoading, isAuthenticated } = useAuth();
+  const router = useRouter();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const inAuthGroup = segments[0] === "auth";
+
+    if (!isAuthenticated && !inAuthGroup) {
+      router.replace("/auth/login");
+    } else if (isAuthenticated && inAuthGroup) {
+      router.replace("/");
+    }
+  }, [isLoading, isAuthenticated, segments]);
 
   if (isLoading) {
     return (
@@ -89,10 +104,19 @@ export default function RootLayout() {
             ),
           }}
         />
+        <Tabs.Screen
+          name="auth"
+          options={{
+            href: null,
+            tabBarStyle: { display: "none" },
+          }}
+        />
       </Tabs>
     </>
   );
-}
+};
+
+export default RootLayout;
 
 const styles = StyleSheet.create({
   loadingContainer: {
