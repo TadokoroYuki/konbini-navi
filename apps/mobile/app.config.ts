@@ -1,16 +1,16 @@
 import { ExpoConfig, ConfigContext } from "expo/config";
 
-const IS_DEV = process.env.APP_VARIANT === "development";
+const IS_PROD = process.env.APP_VARIANT === "production";
 
 const getApiUrl = (): string => {
   if (process.env.API_URL) {
     return process.env.API_URL;
   }
-  if (IS_DEV) {
-    return "http://localhost:8080/v1";
+  if (IS_PROD) {
+    return "https://osjsexo43j.execute-api.us-east-1.amazonaws.com/prod/v1";
   }
-  // Production: AWS API Gateway
-  return "https://osjsexo43j.execute-api.us-east-1.amazonaws.com/prod/v1";
+  // Default to local API gateway for development
+  return "http://localhost:8080/v1";
 };
 
 export default ({ config }: ConfigContext): ExpoConfig => ({

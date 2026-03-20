@@ -109,6 +109,27 @@ services:
       products:
         condition: service_started
 
+  api-gateway:
+    image: nginx:alpine
+    container_name: konbini-api-gateway
+    ports:
+      - "8080:80"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - products
+      - records
+      - nutrition
+      - recommendations
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - konbini-network
+    restart: on-failure
+
   swagger-ui:
     image: swaggerapi/swagger-ui:latest
     container_name: konbini-swagger-ui
