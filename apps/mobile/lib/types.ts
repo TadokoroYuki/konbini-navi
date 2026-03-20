@@ -72,6 +72,11 @@ export interface Recommendation {
   deficientNutrients: string[];
 }
 
+export interface AnalysisResponse {
+  analysis: string;
+  suggestions: string[];
+}
+
 export interface ApiError {
   code: string;
   message: string;
