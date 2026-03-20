@@ -5,6 +5,8 @@ import {
   ScrollView,
   StyleSheet,
   RefreshControl,
+  TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useAuth } from "../hooks/useAuth";
@@ -12,9 +14,11 @@ import { useNutrition } from "../hooks/useNutrition";
 import {
   NutrientStatus,
   NutritionStatus,
+  AnalysisResponse,
   STATUS_LABELS,
 } from "../lib/types";
 import { getToday } from "../lib/date";
+import { getAnalysis } from "../lib/api-client";
 
 const formatDate = (dateStr: string): string => {
   const d = new Date(dateStr + "T00:00:00");
@@ -109,6 +113,19 @@ const HomeScreen = () => {
   const today = getToday();
   const { nutrition, isLoading, refetch } = useNutrition(deviceId, today);
   const [refreshing, setRefreshing] = useState(false);
+  const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+
+  const fetchAnalysis = async () => {
+    if (!deviceId) return;
+    setAnalysisLoading(true);
+    try {
+      const result = await getAnalysis(deviceId, today);
+      setAnalysis(result);
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -171,6 +188,48 @@ const HomeScreen = () => {
           <Text style={styles.summaryText}>
             {getSummaryText(nutrition.calories, nutrition.protein)}
           </Text>
+        </View>
+      )}
+
+      {/* AI Analysis */}
+      {nutrition && (
+        <View style={styles.analysisSection}>
+          {!analysis && !analysisLoading && (
+            <TouchableOpacity
+              style={styles.analysisButton}
+              onPress={fetchAnalysis}
+            >
+              <Text style={styles.analysisButtonText}>AI分析を見る</Text>
+            </TouchableOpacity>
+          )}
+          {analysisLoading && (
+            <View style={styles.analysisCard}>
+              <ActivityIndicator size="small" color="#1565C0" />
+              <Text style={styles.analysisLoadingText}>AI分析中...</Text>
+            </View>
+          )}
+          {analysis && !analysisLoading && (
+            <View style={styles.analysisCard}>
+              <Text style={styles.analysisTitle}>AI栄養分析</Text>
+              <Text style={styles.analysisText}>{analysis.analysis}</Text>
+              {analysis.suggestions.length > 0 && (
+                <View style={styles.suggestionsList}>
+                  {analysis.suggestions.map((s, i) => (
+                    <View key={i} style={styles.suggestionItem}>
+                      <Text style={styles.suggestionBullet}>•</Text>
+                      <Text style={styles.suggestionText}>{s}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+              <TouchableOpacity
+                style={styles.reanalyzeButton}
+                onPress={fetchAnalysis}
+              >
+                <Text style={styles.reanalyzeButtonText}>再分析</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       )}
     </ScrollView>
@@ -297,5 +356,70 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#333",
     lineHeight: 20,
+  },
+  analysisSection: {
+    marginTop: 16,
+  },
+  analysisButton: {
+    backgroundColor: "#1565C0",
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+  },
+  analysisButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  analysisCard: {
+    backgroundColor: "#E3F2FD",
+    borderRadius: 12,
+    padding: 16,
+  },
+  analysisTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#1565C0",
+    marginBottom: 8,
+  },
+  analysisText: {
+    fontSize: 14,
+    color: "#333",
+    lineHeight: 20,
+  },
+  analysisLoadingText: {
+    fontSize: 14,
+    color: "#1565C0",
+    marginTop: 8,
+    textAlign: "center",
+  },
+  suggestionsList: {
+    marginTop: 12,
+    gap: 6,
+  },
+  suggestionItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  suggestionBullet: {
+    fontSize: 14,
+    color: "#1565C0",
+    marginRight: 8,
+    lineHeight: 20,
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: "#333",
+    lineHeight: 20,
+    flex: 1,
+  },
+  reanalyzeButton: {
+    marginTop: 12,
+    alignSelf: "flex-end",
+  },
+  reanalyzeButtonText: {
+    fontSize: 13,
+    color: "#1565C0",
+    fontWeight: "600",
   },
 });

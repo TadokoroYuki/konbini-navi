@@ -101,6 +101,7 @@ services:
       HTTP_PORT: "2525"
       NUTRITION_GRPC_ADDR: nutrition:1057
       PRODUCTS_GRPC_ADDR: products:7112
+      AWS_REGION: ${AWS_REGION:-}
     ports:
       - "2525:2525"
     depends_on:

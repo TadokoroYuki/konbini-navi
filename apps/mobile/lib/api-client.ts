@@ -5,6 +5,7 @@ import {
   CreateRecordRequest,
   NutritionSummary,
   Recommendation,
+  AnalysisResponse,
   Brand,
   Category,
 } from "./types";
@@ -190,5 +191,24 @@ export const getRecommendations = async (
     return result.recommendations;
   } catch {
     return mockRecommendations;
+  }
+};
+
+// --- Analysis ---
+
+export const getAnalysis = async (
+  userId: string,
+  date: string
+): Promise<AnalysisResponse> => {
+  try {
+    return await request<AnalysisResponse>(
+      `/users/${userId}/analysis?date=${date}`
+    );
+  } catch {
+    console.warn("[FALLBACK] getAnalysis - using fallback");
+    return {
+      analysis: "分析データを取得できませんでした。",
+      suggestions: ["食事を記録して、AI分析を試してみましょう"],
+    };
   }
 };

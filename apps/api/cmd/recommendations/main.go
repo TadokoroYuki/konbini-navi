@@ -28,12 +28,15 @@ func main() {
 		log.Fatalf("failed to connect to products service: %v", err)
 	}
 
+	awsRegion := getEnv("AWS_REGION", "")
 	engine := recommendations.NewEngine(nutritionClient, productClient)
-	handler := recommendations.NewHandler(engine)
+	analyzer := recommendations.NewAnalyzer(nutritionClient, awsRegion)
+	handler := recommendations.NewHandler(engine, analyzer)
 
 	// HTTP server only (no gRPC - not called by other services)
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/users/{userId}/recommendations", handler.Get)
+	mux.HandleFunc("GET /v1/users/{userId}/analysis", handler.GetAnalysis)
 	mux.HandleFunc("GET /health", handler.Health)
 
 	httpSrv := &http.Server{
