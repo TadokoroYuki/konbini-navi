@@ -20,20 +20,22 @@ const SignupScreen = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
   const { signUp } = useAuth();
 
   const handleSignup = async () => {
+    setErrorMessage("");
     if (!name || !email || !password) {
-      Alert.alert("エラー", "すべての項目を入力してください");
+      setErrorMessage("すべての項目を入力してください");
       return;
     }
     if (password.length < 8) {
-      Alert.alert("エラー", "パスワードは8文字以上で入力してください");
+      setErrorMessage("パスワードは8文字以上で入力してください");
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert("エラー", "パスワードが一致しません");
+      setErrorMessage("パスワードが一致しません");
       return;
     }
 
@@ -41,7 +43,7 @@ const SignupScreen = () => {
     try {
       await signUp(name, email, password);
     } catch {
-      Alert.alert("登録失敗", "登録に失敗しました。別のメールアドレスをお試しください");
+      setErrorMessage("登録に失敗しました。別のメールアドレスをお試しください");
     } finally {
       setIsSubmitting(false);
     }
@@ -62,6 +64,9 @@ const SignupScreen = () => {
         </View>
 
         <View style={styles.form}>
+          {errorMessage ? (
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          ) : null}
           <Text style={styles.label}>お名前</Text>
           <TextInput
             style={styles.input}
@@ -203,5 +208,14 @@ const styles = StyleSheet.create({
   linkBold: {
     color: "#4CAF50",
     fontWeight: "600",
+  },
+  errorText: {
+    color: "#F44336",
+    fontSize: 14,
+    textAlign: "center" as const,
+    marginBottom: 12,
+    backgroundColor: "#FFEBEE",
+    padding: 12,
+    borderRadius: 8,
   },
 });
