@@ -14,14 +14,7 @@ import {
   NutritionStatus,
   STATUS_LABELS,
 } from "../lib/types";
-
-function getToday(): string {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
+import { getToday } from "../lib/date";
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");
