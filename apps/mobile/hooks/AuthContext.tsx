@@ -21,6 +21,18 @@ interface AuthUser {
   email: string;
 }
 
+/** 開発環境では認証をスキップし、固定のdevユーザーで自動ログイン */
+const DEV_USER: AuthUser = {
+  id: "dev-device-001",
+  name: "開発者",
+  email: "dev@local",
+};
+
+const isDevMode = (): boolean => {
+  if (typeof __DEV__ !== "undefined") return __DEV__;
+  return false;
+};
+
 interface AuthContextType {
   user: AuthUser | null;
   token: string | null;
@@ -57,11 +69,19 @@ const decodeJwtPayload = (token: string): Record<string, unknown> => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(() =>
+    isDevMode() ? DEV_USER : null
+  );
   const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!isDevMode());
 
   useEffect(() => {
+    if (isDevMode()) {
+      setUser(DEV_USER);
+      setAuthToken(null);
+      return;
+    }
+
     const restoreSession = async () => {
       try {
         const [storedTokens, storedUser] = await Promise.all([
@@ -109,6 +129,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
+    if (isDevMode()) {
+      setUser(DEV_USER);
+      return;
+    }
     const result = await cognitoRequest("InitiateAuth", {
       AuthFlow: "USER_PASSWORD_AUTH",
       ClientId: CLIENT_ID,
@@ -147,6 +171,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signUp = useCallback(
     async (name: string, email: string, password: string) => {
+      if (isDevMode()) {
+        setUser(DEV_USER);
+        return;
+      }
       await cognitoRequest("SignUp", {
         ClientId: CLIENT_ID,
         Username: email,
@@ -163,6 +191,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const signOut = useCallback(async () => {
+    if (isDevMode()) return;
     await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
     setToken(null);
     setUser(null);
@@ -176,7 +205,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         token,
         deviceId: user?.id ?? null,
         isLoading,
-        isAuthenticated: !!token && !!user,
+        isAuthenticated: (!!token && !!user) || (isDevMode() && !!user),
         signIn,
         signUp,
         signOut,
