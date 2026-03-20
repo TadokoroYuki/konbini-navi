@@ -40,3 +40,13 @@ CREATE INDEX IF NOT EXISTS idx_records_user_id ON records(user_id);
 CREATE INDEX IF NOT EXISTS idx_records_date ON records(date);
 CREATE INDEX IF NOT EXISTS idx_records_user_date ON records(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_records_record_id ON records(record_id);
+
+-- Recommendations table (pre-computed recommendation cache)
+CREATE TABLE IF NOT EXISTS recommendations (
+  user_id VARCHAR(255) PRIMARY KEY,
+  product_id VARCHAR(255) NOT NULL,
+  date DATE NOT NULL,
+  score NUMERIC(10, 2),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (product_id) REFERENCES products(product_id)
+);
