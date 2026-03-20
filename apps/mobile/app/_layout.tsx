@@ -1,4 +1,4 @@
-import { Tabs, useRouter, useSegments } from "expo-router";
+import { Tabs, Slot, useRouter, useSegments } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { useAuth } from "../hooks/useAuth";
@@ -33,6 +33,15 @@ const RootLayout = () => {
         <ActivityIndicator size="large" color="#4CAF50" />
         <Text style={styles.loadingText}>読み込み中...</Text>
       </View>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <Slot />
+      </>
     );
   }
 
@@ -108,7 +117,6 @@ const RootLayout = () => {
           name="auth"
           options={{
             href: null,
-            tabBarStyle: { display: "none" },
           }}
         />
       </Tabs>

@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import {
   CognitoUserPool,
   CognitoUser,
-  AuthenticationDetails,
   CognitoUserAttribute,
   CognitoUserSession,
+  AuthenticationDetails,
 } from "amazon-cognito-identity-js";
 import Constants from "expo-constants";
 import { setAuthToken } from "../lib/api-client";
@@ -112,20 +112,21 @@ export const useAuth = (): UseAuthReturn => {
     const session = await new Promise<CognitoUserSession>((resolve, reject) => {
       cognitoUser.authenticateUser(authDetails, {
         onSuccess: resolve,
-        onFailure: reject,
+        onFailure: (err) => {
+          reject(new Error(err.message || "ログインに失敗しました"));
+        },
       });
     });
 
     const idToken = session.getIdToken().getJwtToken();
-    const attrs = await getUserAttributes(cognitoUser);
-
-    const name =
-      attrs.find((a) => a.getName() === "name")?.getValue() ?? "";
-    const sub =
-      attrs.find((a) => a.getName() === "sub")?.getValue() ?? "";
+    const payload = session.getIdToken().payload;
 
     setToken(idToken);
-    setUser({ id: sub, name, email });
+    setUser({
+      id: payload.sub as string,
+      name: (payload.name as string) ?? "",
+      email: (payload.email as string) ?? email,
+    });
     setAuthToken(idToken);
   }, []);
 
@@ -139,14 +140,14 @@ export const useAuth = (): UseAuthReturn => {
       await new Promise<CognitoUser>((resolve, reject) => {
         userPool.signUp(email, password, attributes, [], (err, result) => {
           if (err || !result) {
-            reject(err ?? new Error("Sign up failed"));
+            reject(new Error(err?.message || "登録に失敗しました"));
             return;
           }
           resolve(result.user);
         });
       });
 
-      // Auto sign-in after signup (only works if auto-verify is enabled)
+      // Auto sign-in after signup
       await signIn(email, password);
     },
     [signIn]
