@@ -9,8 +9,8 @@ const getApiUrl = (): string => {
   if (IS_DEV) {
     return "http://localhost:8080/v1";
   }
-  // Production: replace with API Gateway URL
-  return "https://api.example.com/v1";
+  // Production: AWS API Gateway
+  return "https://osjsexo43j.execute-api.us-east-1.amazonaws.com/prod/v1";
 };
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
