@@ -4,7 +4,6 @@ phases:
   pre_build:
     commands:
       - echo "Logging in to Amazon ECR..."
-      # 修正: AWS CLIを使って現在のアカウントIDを動的に取得する
       - AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
@@ -17,32 +16,44 @@ phases:
   build:
     commands:
       - echo "Build started on `date`"
-      - echo "Building the Docker image..."
-      # REPOSITORY_URI はCDKの環境変数から自動で渡ってきます
-      - docker build --platform linux/amd64 --build-arg SERVICE_NAME=api -f apps/api/Dockerfile -t $REPOSITORY_URI:latest apps/api
-      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+      - echo "Building microservices..."
+      # Build all microservices
+      - docker build --platform linux/amd64 --build-arg SERVICE_NAME=products -f apps/api/Dockerfile -t $REPOSITORY_URI:products-$IMAGE_TAG apps/api
+      - docker build --platform linux/amd64 --build-arg SERVICE_NAME=records -f apps/api/Dockerfile -t $REPOSITORY_URI:records-$IMAGE_TAG apps/api
+      - docker build --platform linux/amd64 --build-arg SERVICE_NAME=nutrition -f apps/api/Dockerfile -t $REPOSITORY_URI:nutrition-$IMAGE_TAG apps/api
+      - docker build --platform linux/amd64 --build-arg SERVICE_NAME=recommendations -f apps/api/Dockerfile -t $REPOSITORY_URI:recommendations-$IMAGE_TAG apps/api
+      # Tag with latest
+      - docker tag $REPOSITORY_URI:products-$IMAGE_TAG $REPOSITORY_URI:products-latest
+      - docker tag $REPOSITORY_URI:records-$IMAGE_TAG $REPOSITORY_URI:records-latest
+      - docker tag $REPOSITORY_URI:nutrition-$IMAGE_TAG $REPOSITORY_URI:nutrition-latest
+      - docker tag $REPOSITORY_URI:recommendations-$IMAGE_TAG $REPOSITORY_URI:recommendations-latest
 
   post_build:
     commands:
       - echo "Build completed on `date`"
-      - echo "Pushing the Docker images..."
-      - docker push $REPOSITORY_URI:latest
-      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - echo "Pushing Docker images..."
+      # Push all images with commit hash tags
+      - docker push $REPOSITORY_URI:products-$IMAGE_TAG
+      - docker push $REPOSITORY_URI:records-$IMAGE_TAG
+      - docker push $REPOSITORY_URI:nutrition-$IMAGE_TAG
+      - docker push $REPOSITORY_URI:recommendations-$IMAGE_TAG
+      # Push all images with latest tags
+      - docker push $REPOSITORY_URI:products-latest
+      - docker push $REPOSITORY_URI:records-latest
+      - docker push $REPOSITORY_URI:nutrition-latest
+      - docker push $REPOSITORY_URI:recommendations-latest
       - echo "Updating Kubernetes manifests..."
       - cd $CODEBUILD_SRC_DIR
-      # Update deployment.yaml with new image tag
-      - 'sed -i "s|image: $REPOSITORY_URI:.*|image: $REPOSITORY_URI:$IMAGE_TAG|g" infra/k8s/deployment.yaml'
+      # Update all deployment files with new image tags
+      - find infra/k8s -name "*-deployment.yaml" -exec sed -i "s|image: $REPOSITORY_URI:[a-z]*-[a-z0-9]*|image: $REPOSITORY_URI:\1-$IMAGE_TAG|g" {} \;
       # Configure git
       - git config --global user.email "codebuild@aws.amazon.com"
       - git config --global user.name "AWS CodeBuild"
       # Commit and push changes
-      - git add infra/k8s/deployment.yaml
-      - git commit -m "Update image tag to $IMAGE_TAG" || echo "No changes to commit"
+      - git add infra/k8s/*-deployment.yaml
+      - git commit -m "Update image tags to $IMAGE_TAG" || echo "No changes to commit"
       - git push origin HEAD:main || echo "Failed to push, but continuing..."
-      - echo "Writing image definitions file..."
-      - printf '[{"name":"konbini-navi-api","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
 
 artifacts:
   files:
-    # 修正: ルートのものを指定する
     - imagedefinitions.json

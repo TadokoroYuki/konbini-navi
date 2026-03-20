@@ -14,15 +14,34 @@ metadata:
     alb.ingress.kubernetes.io/unhealthy-threshold-count: "2"
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
     alb.ingress.kubernetes.io/tags: Project=konbini-navi,Environment=production
+    # パスベースルーティング設定
+    alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
 spec:
   ingressClassName: alb
   rules:
   - http:
       paths:
+      # Products service
+      - path: /v1/products
+        pathType: Prefix
+        backend:
+          service:
+            name: products
+            port:
+              number: 7111
+      # Records service
+      - path: /v1/users
+        pathType: Prefix
+        backend:
+          service:
+            name: records
+            port:
+              number: 8810
+      # Default: recommendations (for /v1/users/.../recommendations など)
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: konbini-navi-api
+            name: recommendations
             port:
-              number: 80
+              number: 2525
