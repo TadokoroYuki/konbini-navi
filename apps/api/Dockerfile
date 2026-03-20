@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.24-alpine AS builder
+FROM public.ecr.aws/docker/library/golang:1.24-alpine AS builder
 
 ARG SERVICE_NAME
 
@@ -13,7 +13,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /service ./cmd/${SERVICE_NAME}
 
 # Runtime stage
-FROM alpine:latest
+FROM public.ecr.aws/docker/library/alpine:latest
 
 RUN apk --no-cache add ca-certificates
 
