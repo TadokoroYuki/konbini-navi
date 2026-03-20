@@ -4,8 +4,9 @@ phases:
   pre_build:
     commands:
       - echo "Logging in to Amazon ECR..."
+      # 修正: AWS CLIを使って現在のアカウントIDを動的に取得する
+      - AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
-      - REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/konbini-navi-api
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE_TAG=${COMMIT_HASH:=latest}
 
@@ -13,6 +14,7 @@ phases:
     commands:
       - echo "Build started on `date`"
       - echo "Building the Docker image..."
+      # REPOSITORY_URI はCDKの環境変数から自動で渡ってきます
       - cd apps/api
       - docker build -t $REPOSITORY_URI:latest .
       - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
@@ -24,8 +26,11 @@ phases:
       - docker push $REPOSITORY_URI:latest
       - docker push $REPOSITORY_URI:$IMAGE_TAG
       - echo "Writing image definitions file..."
+      # 修正: ルートディレクトリに戻ってから imagedefinitions.json を作成する
+      - cd $CODEBUILD_SRC_DIR
       - printf '[{"name":"konbini-navi-api","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
 
 artifacts:
   files:
-    - apps/api/imagedefinitions.json
+    # 修正: ルートのものを指定する
+    - imagedefinitions.json

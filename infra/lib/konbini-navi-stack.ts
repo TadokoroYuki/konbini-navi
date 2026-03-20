@@ -62,45 +62,15 @@ export class KonbiniNaviStack extends cdk.Stack {
       this,
       "KonbiniNaviBuild",
       {
-        buildSpec: codebuild.BuildSpec.fromObject({
-          version: "0.2",
-          phases: {
-            pre_build: {
-              commands: [
-                "echo Logging in to Amazon ECR...",
-                "aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com",
-                "REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/konbini-navi-api",
-                "COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)",
-                "IMAGE_TAG=${COMMIT_HASH:=latest}",
-              ],
-            },
-            build: {
-              commands: [
-                "echo Build started on `date`",
-                "echo Building the Docker image...",
-                "cd apps/api",
-                "docker build -t $REPOSITORY_URI:latest .",
-                "docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG",
-              ],
-            },
-            post_build: {
-              commands: [
-                "echo Build completed on `date`",
-                "echo Pushing the Docker images...",
-                "docker push $REPOSITORY_URI:latest",
-                "docker push $REPOSITORY_URI:$IMAGE_TAG",
-                "echo Writing image definitions file...",
-                'printf \'[{"name":"konbini-navi-api","imageUri":"%s"}]\' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json',
-              ],
-            },
-          },
-          artifacts: {
-            files: ["imagedefinitions.json"],
-          },
-        }),
+        // 修正: 外部の buildspec.yml を読み込む
+        buildSpec: codebuild.BuildSpec.fromSourceFilename("apps/api/buildspec.yml"),
         environment: {
           buildImage: codebuild.LinuxBuildImage.STANDARD_7_0,
           privileged: true,
+        },
+        // 修正: CDKで作ったECRのURLを、環境変数としてCodeBuildに注入する
+        environmentVariables: {
+          REPOSITORY_URI: { value: ecrRepo.repositoryUri },
         },
       }
     );
