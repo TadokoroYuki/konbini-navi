@@ -1,7 +1,7 @@
 import { Tabs, Slot, useRouter, useSegments } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
-import { useAuth } from "../hooks/useAuth";
+import { AuthProvider, useAuth } from "../hooks/AuthContext";
 import { useEffect } from "react";
 import {
   ActivityIndicator,
@@ -10,7 +10,7 @@ import {
   Text,
 } from "react-native";
 
-const RootLayout = () => {
+const RootLayoutInner = () => {
   const { isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
   const segments = useSegments();
@@ -123,6 +123,12 @@ const RootLayout = () => {
     </>
   );
 };
+
+const RootLayout = () => (
+  <AuthProvider>
+    <RootLayoutInner />
+  </AuthProvider>
+);
 
 export default RootLayout;
 
