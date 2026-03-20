@@ -17,10 +17,7 @@ import {
   NutritionStatus,
   STATUS_LABELS,
 } from "../lib/types";
-
-function getToday(): string {
-  return new Date().toISOString().split("T")[0];
-}
+import { getToday } from "../lib/date";
 
 function getStatusColor(status: NutritionStatus): string {
   switch (status) {
