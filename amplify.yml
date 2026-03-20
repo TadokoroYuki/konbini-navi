@@ -9,7 +9,7 @@ applications:
         pre_build:
           commands:
             - echo "Setting build environment..."
-            - export APP_VARIANT=production
+            - export API_URL=http://k8s-default-konbinin-d154cd8c14-537123251.ap-northeast-1.elb.amazonaws.com/v1
             - npm install -g pnpm
         install:
           commands:
