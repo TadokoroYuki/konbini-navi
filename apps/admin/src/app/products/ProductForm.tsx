@@ -22,8 +22,8 @@ type Props = {
   defaultValues?: {
     product_id?: string;
     name?: string;
-    brand?: string;
-    category?: string;
+    brand?: string | null;
+    category?: string | null;
     price?: number | null;
     calories?: number | null;
     protein?: number | null;
