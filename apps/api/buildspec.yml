@@ -28,28 +28,16 @@ phases:
       - echo "Pushing the Docker images..."
       - docker push $REPOSITORY_URI:latest
       - docker push $REPOSITORY_URI:$IMAGE_TAG
-      - echo "Updating Kubernetes manifests..."
+      - echo "Docker images pushed successfully"
+      - echo "Updating K8s manifests with new image tag..."
       - cd $CODEBUILD_SRC_DIR
-      # Update deployment.yaml with new image tag
-      - 'sed -i "s|image: $REPOSITORY_URI:.*|image: $REPOSITORY_URI:$IMAGE_TAG|g" infra/k8s/deployment.yaml'
+      # Update all deployment YAML files with new image tag
+      - 'sed -i "s|image: 974857491219.dkr.ecr.ap-northeast-1.amazonaws.com/konbini-navi-api:.*|image: $REPOSITORY_URI:$IMAGE_TAG|g" infra/k8s/*-deployment.yaml'
       # Configure git
       - git config --global user.email "codebuild@aws.amazon.com"
       - git config --global user.name "AWS CodeBuild"
-      # Commit and push changes
-      - git add infra/k8s/deployment.yaml
-      - git commit -m "Update image tag to $IMAGE_TAG" || echo "No changes to commit"
+      # Commit and push changes to trigger ArgoCD sync
+      - git add infra/k8s/*-deployment.yaml
+      - git commit -m "chore: update image tag to $IMAGE_TAG" || echo "No changes to commit"
       - git push origin HEAD:main || echo "Failed to push, but continuing..."
-      # Deploy CDK infrastructure
-      - echo "Deploying CDK infrastructure..."
-      - cd $CODEBUILD_SRC_DIR/infra
-      - npm install
-      - npm run build
-      - npx cdk deploy --all --require-approval=never
-      - echo "CDK deployment completed"
-      - echo "Writing image definitions file..."
-      - printf '[{"name":"konbini-navi-api","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
-
-artifacts:
-  files:
-    # 修正: ルートのものを指定する
-    - imagedefinitions.json
+      - echo "K8s manifests updated and pushed to main"
