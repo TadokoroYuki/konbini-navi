@@ -330,6 +330,50 @@ func (x *DeleteRecordRequest) GetRecordId() string {
 	return ""
 }
 
+type ListAllRecordsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAllRecordsRequest) Reset() {
+	*x = ListAllRecordsRequest{}
+	mi := &file_record_record_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAllRecordsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAllRecordsRequest) ProtoMessage() {}
+
+func (x *ListAllRecordsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_record_record_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAllRecordsRequest.ProtoReflect.Descriptor instead.
+func (*ListAllRecordsRequest) Descriptor() ([]byte, []int) {
+	return file_record_record_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ListAllRecordsRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
 type Empty struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -338,7 +382,7 @@ type Empty struct {
 
 func (x *Empty) Reset() {
 	*x = Empty{}
-	mi := &file_record_record_proto_msgTypes[5]
+	mi := &file_record_record_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -350,7 +394,7 @@ func (x *Empty) String() string {
 func (*Empty) ProtoMessage() {}
 
 func (x *Empty) ProtoReflect() protoreflect.Message {
-	mi := &file_record_record_proto_msgTypes[5]
+	mi := &file_record_record_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -363,7 +407,7 @@ func (x *Empty) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Empty.ProtoReflect.Descriptor instead.
 func (*Empty) Descriptor() ([]byte, []int) {
-	return file_record_record_proto_rawDescGZIP(), []int{5}
+	return file_record_record_proto_rawDescGZIP(), []int{6}
 }
 
 var File_record_record_proto protoreflect.FileDescriptor
@@ -394,10 +438,13 @@ const file_record_record_proto_rawDesc = "" +
 	"\tmeal_type\x18\x04 \x01(\tR\bmealType\"K\n" +
 	"\x13DeleteRecordRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1b\n" +
-	"\trecord_id\x18\x02 \x01(\tR\brecordId\"\a\n" +
-	"\x05Empty2\xd0\x01\n" +
+	"\trecord_id\x18\x02 \x01(\tR\brecordId\"0\n" +
+	"\x15ListAllRecordsRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"\a\n" +
+	"\x05Empty2\x9e\x02\n" +
 	"\rRecordService\x12F\n" +
-	"\vListRecords\x12\x1a.record.ListRecordsRequest\x1a\x1b.record.ListRecordsResponse\x12;\n" +
+	"\vListRecords\x12\x1a.record.ListRecordsRequest\x1a\x1b.record.ListRecordsResponse\x12L\n" +
+	"\x0eListAllRecords\x12\x1d.record.ListAllRecordsRequest\x1a\x1b.record.ListRecordsResponse\x12;\n" +
 	"\fCreateRecord\x12\x1b.record.CreateRecordRequest\x1a\x0e.record.Record\x12:\n" +
 	"\fDeleteRecord\x12\x1b.record.DeleteRecordRequest\x1a\r.record.EmptyB:Z8github.com/TadokoroYuki/konbini-navi/apps/api/gen/recordb\x06proto3"
 
@@ -413,27 +460,30 @@ func file_record_record_proto_rawDescGZIP() []byte {
 	return file_record_record_proto_rawDescData
 }
 
-var file_record_record_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_record_record_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_record_record_proto_goTypes = []any{
-	(*Record)(nil),              // 0: record.Record
-	(*ListRecordsRequest)(nil),  // 1: record.ListRecordsRequest
-	(*ListRecordsResponse)(nil), // 2: record.ListRecordsResponse
-	(*CreateRecordRequest)(nil), // 3: record.CreateRecordRequest
-	(*DeleteRecordRequest)(nil), // 4: record.DeleteRecordRequest
-	(*Empty)(nil),               // 5: record.Empty
-	(*product.Product)(nil),     // 6: product.Product
+	(*Record)(nil),                // 0: record.Record
+	(*ListRecordsRequest)(nil),    // 1: record.ListRecordsRequest
+	(*ListRecordsResponse)(nil),   // 2: record.ListRecordsResponse
+	(*CreateRecordRequest)(nil),   // 3: record.CreateRecordRequest
+	(*DeleteRecordRequest)(nil),   // 4: record.DeleteRecordRequest
+	(*ListAllRecordsRequest)(nil), // 5: record.ListAllRecordsRequest
+	(*Empty)(nil),                 // 6: record.Empty
+	(*product.Product)(nil),       // 7: product.Product
 }
 var file_record_record_proto_depIdxs = []int32{
-	6, // 0: record.Record.product:type_name -> product.Product
+	7, // 0: record.Record.product:type_name -> product.Product
 	0, // 1: record.ListRecordsResponse.records:type_name -> record.Record
 	1, // 2: record.RecordService.ListRecords:input_type -> record.ListRecordsRequest
-	3, // 3: record.RecordService.CreateRecord:input_type -> record.CreateRecordRequest
-	4, // 4: record.RecordService.DeleteRecord:input_type -> record.DeleteRecordRequest
-	2, // 5: record.RecordService.ListRecords:output_type -> record.ListRecordsResponse
-	0, // 6: record.RecordService.CreateRecord:output_type -> record.Record
-	5, // 7: record.RecordService.DeleteRecord:output_type -> record.Empty
-	5, // [5:8] is the sub-list for method output_type
-	2, // [2:5] is the sub-list for method input_type
+	5, // 3: record.RecordService.ListAllRecords:input_type -> record.ListAllRecordsRequest
+	3, // 4: record.RecordService.CreateRecord:input_type -> record.CreateRecordRequest
+	4, // 5: record.RecordService.DeleteRecord:input_type -> record.DeleteRecordRequest
+	2, // 6: record.RecordService.ListRecords:output_type -> record.ListRecordsResponse
+	2, // 7: record.RecordService.ListAllRecords:output_type -> record.ListRecordsResponse
+	0, // 8: record.RecordService.CreateRecord:output_type -> record.Record
+	6, // 9: record.RecordService.DeleteRecord:output_type -> record.Empty
+	6, // [6:10] is the sub-list for method output_type
+	2, // [2:6] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
 	2, // [2:2] is the sub-list for extension extendee
 	0, // [0:2] is the sub-list for field type_name
@@ -450,7 +500,7 @@ func file_record_record_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_record_record_proto_rawDesc), len(file_record_record_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

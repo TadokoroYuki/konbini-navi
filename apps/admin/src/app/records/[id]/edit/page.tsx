@@ -31,7 +31,7 @@ export default async function EditRecordPage({
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-gray-800">Record - 編集 (ID: {id})</h2>
-      <RecordForm action={action} defaultValues={record} submitLabel="更新" />
+      <RecordForm action={action} defaultValues={record} submitLabel="更新" showRecordId />
     </div>
   );
 }

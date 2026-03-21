@@ -24,6 +24,7 @@ func main() {
 	grpcPort := getEnv("GRPC_PORT", "8811")
 	dbURL := os.Getenv("DATABASE_URL")
 	productsGRPC := getEnv("PRODUCTS_GRPC_ADDR", "localhost:7112")
+	recommendationsURL := getEnv("RECOMMENDATIONS_URL", "http://localhost:2525")
 
 	if dbURL == "" {
 		log.Fatal("DATABASE_URL is required")
@@ -45,8 +46,8 @@ func main() {
 	}
 
 	repo := records.NewRepository(db, productClient)
-	handler := records.NewHandler(repo, productClient)
-	grpcServer := records.NewGRPCServer(repo, productClient)
+	handler := records.NewHandler(repo, productClient, recommendationsURL)
+	grpcServer := records.NewGRPCServer(repo, productClient, recommendationsURL)
 
 	// gRPC server
 	grpcSrv := grpc.NewServer()

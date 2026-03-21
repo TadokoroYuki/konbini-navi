@@ -7,7 +7,7 @@ export default function Home() {
         PostgreSQL 管理画面
       </h2>
       <p className="text-gray-600">テーブルを選択してCRUD操作を行います。</p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Link
           href="/products"
           className="block p-6 bg-white rounded-lg shadow hover:shadow-md transition"
@@ -24,6 +24,15 @@ export default function Home() {
           <h3 className="text-xl font-semibold text-green-700">Records</h3>
           <p className="text-gray-500 mt-2">
             食事記録 (user_id, product_id, date, meal_type)
+          </p>
+        </Link>
+        <Link
+          href="/recommendations"
+          className="block p-6 bg-white rounded-lg shadow hover:shadow-md transition"
+        >
+          <h3 className="text-xl font-semibold text-green-700">Recommendations</h3>
+          <p className="text-gray-500 mt-2">
+            レコメンド (user_id, product_id, date, score)
           </p>
         </Link>
       </div>

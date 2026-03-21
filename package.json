@@ -6,9 +6,12 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
-    "generate:types": "pnpm --filter api-schema generate"
+    "generate:types": "pnpm --filter api-schema generate",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "devDependencies": {
+    "@playwright/test": "^1.50.0",
     "turbo": "^2.5.0",
     "typescript": "^5.8.0"
   },

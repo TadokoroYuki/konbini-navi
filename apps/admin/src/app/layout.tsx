@@ -25,6 +25,9 @@ export default function RootLayout({
           <a href="/records" className="hover:underline">
             Records
           </a>
+          <a href="/recommendations" className="hover:underline">
+            Recommendations
+          </a>
         </nav>
         <main className="max-w-7xl mx-auto p-6">{children}</main>
       </body>

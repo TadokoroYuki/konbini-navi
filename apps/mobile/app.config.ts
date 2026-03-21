@@ -1,16 +1,12 @@
 import { ExpoConfig, ConfigContext } from "expo/config";
 
-const IS_DEV = process.env.APP_VARIANT === "development";
-
 const getApiUrl = (): string => {
+  // Priority: explicit env var > default to local
   if (process.env.API_URL) {
     return process.env.API_URL;
   }
-  if (IS_DEV) {
-    return "http://localhost:8080/v1";
-  }
-  // Production: AWS API Gateway
-  return "https://osjsexo43j.execute-api.us-east-1.amazonaws.com/prod/v1";
+  // Default: docker-compose api-gateway on localhost
+  return "http://localhost:8080/v1";
 };
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
@@ -41,7 +37,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   plugins: ["expo-router"],
   extra: {
     apiUrl: getApiUrl(),
-    calendarStartedMonth: process.env.EXPO_PUBLIC_CALENDAR_STARTED_MONTH ?? "",
     cognitoUserPoolId: process.env.COGNITO_USER_POOL_ID ?? "",
     cognitoClientId: process.env.COGNITO_CLIENT_ID ?? "",
     cognitoRegion: process.env.COGNITO_REGION ?? "us-east-1",

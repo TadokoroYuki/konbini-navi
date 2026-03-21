@@ -35,10 +35,15 @@ message DeleteRecordRequest {
   string record_id = 2;
 }
 
+message ListAllRecordsRequest {
+  string user_id = 1;
+}
+
 message Empty {}
 
 service RecordService {
   rpc ListRecords(ListRecordsRequest) returns (ListRecordsResponse);
+  rpc ListAllRecords(ListAllRecordsRequest) returns (ListRecordsResponse);
   rpc CreateRecord(CreateRecordRequest) returns (Record);
   rpc DeleteRecord(DeleteRecordRequest) returns (Empty);
 }

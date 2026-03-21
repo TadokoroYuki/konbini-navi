@@ -1,43 +1,31 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-  Modal,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { useCallback, useMemo, useState } from "react";
 import { useFocusEffect, useRouter } from "expo-router";
-import Constants from "expo-constants";
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "../hooks/useAuth";
+import { useHealthScoreStreak } from "../hooks/useHealthScoreStreak";
 import { useNutrition } from "../hooks/useNutrition";
+import { getToday, parseDateString } from "../lib/date";
 import {
-  CalendarHealthTone,
-  useNutritionCalendar,
-} from "../hooks/useNutritionCalendar";
+  calculateHealthScore,
+  getHealthScoreTone,
+} from "../lib/health-score";
 import {
   NutrientStatus,
   NutritionStatus,
   STATUS_LABELS,
 } from "../lib/types";
-import {
-  addMonths,
-  formatDateKey,
-  getMonthKey,
-  parseDateKey,
-} from "../lib/date";
 
-const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
-const CALENDAR_STARTED_MONTH_KEY = "@konbini_navi_calendar_started_month";
-const DEV_CALENDAR_STARTED_MONTH =
-  Constants.expoConfig?.extra?.calendarStartedMonth ?? "";
+const GAUGE_DOT_COUNT = 24;
+const STREAK_TARGET = 80;
 
-const formatFullDate = (dateStr: string): string => {
-  const d = parseDateKey(dateStr);
-  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 (${WEEKDAYS[d.getDay()]})`;
+const formatDate = (dateStr: string): string => {
+  const d = parseDateString(dateStr);
+  const year = d.getFullYear();
+  const month = d.getMonth() + 1;
+  const day = d.getDate();
+  const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+  const weekday = weekdays[d.getDay()];
+  return `${year}年${month}月${day}日 (${weekday})`;
 };
 
 const getStatusColor = (status: NutritionStatus): string => {
@@ -60,37 +48,6 @@ const getStatusBgColor = (status: NutritionStatus): string => {
     case "excessive":
       return "#FFEBEE";
   }
-};
-
-const HEALTH_TONE_META: Record<
-  CalendarHealthTone,
-  { label: string; color: string; backgroundColor: string }
-> = {
-  good: {
-    label: "良好",
-    color: "#1B5E20",
-    backgroundColor: "#E8F5E9",
-  },
-  warning: {
-    label: "やや注意",
-    color: "#E65100",
-    backgroundColor: "#FFF3E0",
-  },
-  bad: {
-    label: "要改善",
-    color: "#B71C1C",
-    backgroundColor: "#FFEBEE",
-  },
-  empty: {
-    label: "記録なし",
-    color: "#546E7A",
-    backgroundColor: "#ECEFF1",
-  },
-  unknown: {
-    label: "読込中",
-    color: "#546E7A",
-    backgroundColor: "#F5F5F5",
-  },
 };
 
 interface NutrientCardProps {
@@ -135,77 +92,159 @@ const NutrientCard = ({ label, unit, data }: NutrientCardProps) => {
   );
 };
 
-const getSummaryText = (
-  calories: NutrientStatus,
-  protein: NutrientStatus
-): string => {
-  const deficients: string[] = [];
-  if (calories.status === "deficient") deficients.push("カロリー");
-  if (protein.status === "deficient") deficients.push("タンパク質");
+const ScoreGauge = ({
+  score,
+  label,
+  color,
+}: {
+  score: number;
+  label: string;
+  color: string;
+}) => {
+  const activeDots = Math.max(
+    0,
+    Math.min(GAUGE_DOT_COUNT, Math.round((score / 100) * GAUGE_DOT_COUNT))
+  );
+  const dots = Array.from({ length: GAUGE_DOT_COUNT }, (_, index) => {
+    const angle = (-90 + (360 / GAUGE_DOT_COUNT) * index) * (Math.PI / 180);
+    const radius = 58;
+    return {
+      index,
+      left: 68 + Math.cos(angle) * radius - 5,
+      top: 68 + Math.sin(angle) * radius - 5,
+      active: index < activeDots,
+    };
+  });
 
-  if (deficients.length === 0) {
-    return "栄養バランスが良好です。この調子で続けましょう！";
-  }
-  return `${deficients.join("と")}が不足しています。おすすめ画面で補える商品をチェックしましょう。`;
+  return (
+    <View style={styles.scorePanel}>
+      <View style={styles.scoreGauge}>
+        {dots.map((dot) => (
+          <View
+            key={dot.index}
+            style={[
+              styles.scoreDot,
+              {
+                left: dot.left,
+                top: dot.top,
+                backgroundColor: dot.active ? color : "#D7DEE6",
+              },
+            ]}
+          />
+        ))}
+        <View style={styles.scoreCenter}>
+          <Text style={[styles.scoreValue, { color }]}>{score}</Text>
+          <Text style={styles.scoreUnit}>/100</Text>
+        </View>
+      </View>
+      <Text style={styles.scoreCaption}>今日の健康スコア</Text>
+      <Text style={[styles.scoreLabel, { color }]}>{label}</Text>
+    </View>
+  );
 };
 
-const buildCalendarGrid = (month: string): string[] => {
-  const [year, monthIndex] = month.split("-").map(Number);
-  const firstDay = new Date(year, monthIndex - 1, 1);
-  const lastDay = new Date(year, monthIndex, 0);
-  const leading = firstDay.getDay();
-  const dates: string[] = [];
+const StreakCard = ({
+  streak,
+  isLoading,
+}: {
+  streak: number;
+  isLoading: boolean;
+}) => {
+  const isStarted = streak > 0;
 
-  for (let i = 0; i < leading; i += 1) {
-    dates.push("");
+  return (
+    <View style={styles.streakCard}>
+      <Text style={styles.streakEyebrow}>STREAK</Text>
+      {isLoading ? (
+        <Text style={styles.streakValue}>計算中...</Text>
+      ) : isStarted ? (
+        <>
+          <Text style={styles.streakTitle}>{STREAK_TARGET}点以上の連続達成</Text>
+          <Text style={styles.streakValue}>{`${streak}日`}</Text>
+          <Text style={styles.streakHint}>
+            この調子で積み上げていきましょう。
+          </Text>
+        </>
+      ) : (
+        <>
+          <Text style={styles.streakTitle}>{STREAK_TARGET}点以上の連続達成</Text>
+          <Text style={styles.streakValue}>0日</Text>
+          <Text style={styles.streakHint}>
+            まずは今日、目標点を超えるところから始めましょう。
+          </Text>
+        </>
+      )}
+    </View>
+  );
+};
+
+const SummarySection = ({
+  summary,
+  onPressRecommend,
+}: {
+  summary: string;
+  onPressRecommend: () => void;
+}) => {
+  return (
+    <View style={styles.summaryCard}>
+      <Text style={styles.summaryTitle}>この日のまとめ</Text>
+      <Text style={styles.summaryText}>{summary}</Text>
+      <Text style={styles.summaryLink} onPress={onPressRecommend}>
+        おすすめ商品を見る
+      </Text>
+    </View>
+  );
+};
+
+const getSummaryText = (
+  calories: NutrientStatus,
+  protein: NutrientStatus,
+  fat: NutrientStatus,
+  carbs: NutrientStatus
+): string => {
+  const deficients: string[] = [];
+  const excessive: string[] = [];
+
+  if (calories.status === "deficient") deficients.push("カロリー");
+  if (protein.status === "deficient") deficients.push("たんぱく質");
+  if (fat.status === "deficient") deficients.push("脂質");
+  if (carbs.status === "deficient") deficients.push("炭水化物");
+
+  if (calories.status === "excessive") excessive.push("カロリー");
+  if (fat.status === "excessive") excessive.push("脂質");
+  if (carbs.status === "excessive") excessive.push("炭水化物");
+
+  if (deficients.length === 0 && excessive.length === 0) {
+    return "栄養バランスが良好です。この調子で続けましょう。";
   }
-
-  for (let day = 1; day <= lastDay.getDate(); day += 1) {
-    dates.push(formatDateKey(new Date(year, monthIndex - 1, day)));
+  if (deficients.length > 0 && excessive.length === 0) {
+    return `${deficients.join("・")}が不足気味です。おすすめ商品で補える食事を探してみましょう。`;
   }
-
-  while (dates.length % 7 !== 0) {
-    dates.push("");
+  if (deficients.length === 0) {
+    return `${excessive.join("・")}が多めです。次の食事は軽めに整えるのがおすすめです。`;
   }
-
-  return dates;
+  return `${deficients.join("・")}の不足と${excessive.join("・")}の摂りすぎが見られます。おすすめ商品も参考にしながら整えましょう。`;
 };
 
 const HomeScreen = () => {
   const router = useRouter();
   const { deviceId } = useAuth();
-  const [selectedDate, setSelectedDate] = useState(formatDateKey(new Date()));
-  const [calendarVisible, setCalendarVisible] = useState(false);
-  const [calendarMonth, setCalendarMonth] = useState(getMonthKey(selectedDate));
-  const [startedMonth, setStartedMonth] = useState(getMonthKey(selectedDate));
-  const selectedMonth = calendarMonth;
-  const { nutrition, isLoading, refetch } = useNutrition(deviceId, selectedDate);
-  const calendar = useNutritionCalendar(deviceId, selectedMonth);
+  const today = getToday();
+  const { nutrition, isLoading, refetch } = useNutrition(deviceId, today);
+  const { streak, isLoading: isStreakLoading } = useHealthScoreStreak(
+    deviceId,
+    today,
+    STREAK_TARGET
+  );
   const [refreshing, setRefreshing] = useState(false);
-  const currentMonth = getMonthKey(formatDateKey(new Date()));
 
-  useEffect(() => {
-    setCalendarMonth(getMonthKey(selectedDate));
-  }, [selectedDate]);
-
-  useEffect(() => {
-    const ensureStartedMonth = async () => {
-      const current = getMonthKey(formatDateKey(new Date()));
-      if (DEV_CALENDAR_STARTED_MONTH) {
-        setStartedMonth(DEV_CALENDAR_STARTED_MONTH);
-        return;
-      }
-      const stored = await AsyncStorage.getItem(CALENDAR_STARTED_MONTH_KEY);
-      if (stored) {
-        setStartedMonth(stored);
-        return;
-      }
-      await AsyncStorage.setItem(CALENDAR_STARTED_MONTH_KEY, current);
-      setStartedMonth(current);
-    };
-
-    void ensureStartedMonth();
-  }, []);
+  const scoreResult = useMemo(
+    () => (nutrition ? calculateHealthScore(nutrition) : null),
+    [nutrition]
+  );
+  const scoreTone = scoreResult
+    ? getHealthScoreTone(scoreResult.total)
+    : null;
 
   useFocusEffect(
     useCallback(() => {
@@ -215,187 +254,75 @@ const HomeScreen = () => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([calendar.refresh(), Promise.resolve(refetch())]);
+    await refetch();
     setRefreshing(false);
   };
 
-  const calendarGrid = useMemo(() => buildCalendarGrid(selectedMonth), [selectedMonth]);
-  const canGoPrevMonth = calendarMonth > startedMonth;
-  const canGoNextMonth = calendarMonth < currentMonth;
+  const goToRecommend = () => {
+    router.push("/recommend");
+  };
 
   return (
-    <>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.contentContainer}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <View style={styles.heroCard}>
-          <View style={styles.heroHeader}>
-            <Text style={styles.heroDateText}>{formatFullDate(selectedDate)}</Text>
-            <TouchableOpacity
-              style={styles.calendarButton}
-              onPress={() => setCalendarVisible(true)}
-            >
-              <Ionicons name="calendar-outline" size={22} color="#2E7D32" />
-            </TouchableOpacity>
-          </View>
-        </View>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      <View style={styles.dateHeader}>
+        <Text style={styles.dateText}>{formatDate(today)}</Text>
+        <Text style={styles.dateSubText}>
+          その日の栄養バランスを確認できます
+        </Text>
+      </View>
 
-        {isLoading ? (
-          <View style={styles.loadingCard}>
-            <Text style={styles.loadingText}>データを読み込み中...</Text>
-          </View>
-        ) : nutrition ? (
+      {isLoading ? (
+        <View style={styles.loadingCard}>
+          <Text style={styles.loadingText}>データを読み込み中...</Text>
+        </View>
+      ) : nutrition ? (
+        <>
+          {scoreResult && scoreTone ? (
+            <>
+              <View style={styles.heroRow}>
+                <ScoreGauge
+                  score={scoreResult.total}
+                  label={scoreTone.label}
+                  color={scoreTone.color}
+                />
+                <StreakCard
+                  streak={streak}
+                  isLoading={isStreakLoading}
+                />
+              </View>
+              <SummarySection
+                summary={getSummaryText(
+                  nutrition.calories,
+                  nutrition.protein,
+                  nutrition.fat,
+                  nutrition.carbs
+                )}
+                onPressRecommend={goToRecommend}
+              />
+            </>
+          ) : null}
+
           <View style={styles.cardsContainer}>
             <NutrientCard label="カロリー" unit="kcal" data={nutrition.calories} />
             <NutrientCard label="たんぱく質" unit="g" data={nutrition.protein} />
             <NutrientCard label="脂質" unit="g" data={nutrition.fat} />
             <NutrientCard label="炭水化物" unit="g" data={nutrition.carbs} />
           </View>
-        ) : (
-          <View style={styles.loadingCard}>
-            <Text style={styles.loadingText}>
-              この日のデータはありません。食事を記録すると状態を確認できます。
-            </Text>
-          </View>
-        )}
-
-        {nutrition && (
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>この日のまとめ</Text>
-            <Text style={styles.summaryText}>
-              {getSummaryText(nutrition.calories, nutrition.protein)}
-            </Text>
-          </View>
-        )}
-      </ScrollView>
-
-      <Modal
-        visible={calendarVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setCalendarVisible(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.calendarModal}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalHeaderContent}>
-                <View style={styles.monthSwitchRow}>
-                  <TouchableOpacity
-                    style={[
-                      styles.monthSwitchButton,
-                      !canGoPrevMonth && styles.monthSwitchButtonDisabled,
-                    ]}
-                    onPress={() => canGoPrevMonth && setCalendarMonth(addMonths(calendarMonth, -1))}
-                    disabled={!canGoPrevMonth}
-                  >
-                    <Ionicons
-                      name="chevron-back"
-                      size={18}
-                      color={canGoPrevMonth ? "#203124" : "#B0B8B1"}
-                    />
-                  </TouchableOpacity>
-                  <Text style={styles.modalTitle}>
-                    {parseDateKey(`${selectedMonth}-01`).getFullYear()}年
-                    {parseDateKey(`${selectedMonth}-01`).getMonth() + 1}月
-                  </Text>
-                  <TouchableOpacity
-                    style={[
-                      styles.monthSwitchButton,
-                      !canGoNextMonth && styles.monthSwitchButtonDisabled,
-                    ]}
-                    onPress={() => canGoNextMonth && setCalendarMonth(addMonths(calendarMonth, 1))}
-                    disabled={!canGoNextMonth}
-                  >
-                    <Ionicons
-                      name="chevron-forward"
-                      size={18}
-                      color={canGoNextMonth ? "#203124" : "#B0B8B1"}
-                    />
-                  </TouchableOpacity>
-                </View>
-                <Text style={styles.modalSubtitle}>
-                  色付きドットで健康状態を確認できます
-                </Text>
-              </View>
-              <TouchableOpacity onPress={() => setCalendarVisible(false)}>
-                <Ionicons name="close" size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.weekdayRow}>
-              {WEEKDAYS.map((weekday) => (
-                <Text key={weekday} style={styles.weekdayLabel}>
-                  {weekday}
-                </Text>
-              ))}
-            </View>
-
-            <View style={styles.calendarGrid}>
-              {calendarGrid.map((date, index) => {
-                if (!date) {
-                  return <View key={`empty-${index}`} style={styles.calendarCell} />;
-                }
-
-                const day = calendar.getDay(date);
-                const tone = day?.tone ?? "unknown";
-                const isSelected = date === selectedDate;
-                const meta = HEALTH_TONE_META[tone];
-
-                return (
-                  <TouchableOpacity
-                    key={date}
-                    style={[
-                      styles.calendarCell,
-                      isSelected && styles.calendarCellActive,
-                    ]}
-                    onPress={() => {
-                      setCalendarVisible(false);
-                      setSelectedDate(date);
-                      router.push({ pathname: "/history", params: { date } });
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.calendarDateLabel,
-                        isSelected && styles.calendarDateLabelActive,
-                      ]}
-                    >
-                      {parseDateKey(date).getDate()}
-                    </Text>
-                    <View
-                      style={[
-                        styles.calendarToneDot,
-                        { backgroundColor: meta.color },
-                      ]}
-                    />
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <View style={styles.legendRow}>
-              {(["good", "warning", "bad", "empty"] as CalendarHealthTone[]).map(
-                (tone) => (
-                  <View key={tone} style={styles.legendItem}>
-                    <View
-                      style={[
-                        styles.legendDot,
-                        { backgroundColor: HEALTH_TONE_META[tone].color },
-                      ]}
-                    />
-                    <Text style={styles.legendText}>{HEALTH_TONE_META[tone].label}</Text>
-                  </View>
-                )
-              )}
-            </View>
-          </View>
+        </>
+      ) : (
+        <View style={styles.loadingCard}>
+          <Text style={styles.loadingText}>
+            この日のデータはありません。食事を記録してみましょう。
+          </Text>
         </View>
-      </Modal>
-    </>
+      )}
+    </ScrollView>
   );
 };
 
@@ -411,38 +338,137 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     gap: 16,
   },
-  heroCard: {
+  dateHeader: {
+    gap: 4,
+  },
+  dateText: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  dateSubText: {
+    fontSize: 14,
+    color: "#888",
+  },
+  heroRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 12,
+    minHeight: 184,
+  },
+  streakCard: {
+    flex: 1,
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 16,
+    justifyContent: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 2,
   },
-  heroHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  streakEyebrow: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+    color: "#7C8A97",
+  },
+  streakTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1F2933",
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  streakValue: {
+    fontSize: 34,
+    fontWeight: "800",
+    color: "#1F2933",
+    marginTop: 12,
+  },
+  streakHint: {
+    fontSize: 12,
+    color: "#6B7785",
+    lineHeight: 18,
+    marginTop: 8,
+  },
+  scorePanel: {
+    width: 168,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  scoreGauge: {
+    width: 136,
+    height: 136,
+    position: "relative",
+    justifyContent: "center",
     alignItems: "center",
   },
-  heroDateText: {
-    fontSize: 24,
+  scoreDot: {
+    position: "absolute",
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  scoreCenter: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  scoreValue: {
+    fontSize: 34,
     fontWeight: "800",
-    color: "#203124",
-    flex: 1,
-    marginRight: 12,
+    lineHeight: 38,
+  },
+  scoreUnit: {
+    fontSize: 12,
+    color: "#7A7A7A",
+    marginTop: 2,
+  },
+  scoreCaption: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#333",
+    marginTop: 12,
+  },
+  scoreLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: 4,
+  },
+  summaryCard: {
+    backgroundColor: "#E8F5E9",
+    borderRadius: 12,
+    padding: 16,
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#2E7D32",
+    marginBottom: 8,
+  },
+  summaryText: {
+    fontSize: 14,
+    color: "#333",
+    lineHeight: 20,
+  },
+  summaryLink: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#2E7D32",
   },
   cardsContainer: {
     gap: 12,
-  },
-  calendarButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#EDF6EE",
-    alignItems: "center",
-    justifyContent: "center",
   },
   nutrientCard: {
     backgroundColor: "#fff",
@@ -520,129 +546,6 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 14,
     color: "#888",
-  },
-  summaryCard: {
-    backgroundColor: "#E8F5E9",
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
-  },
-  summaryTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#2E7D32",
-    marginBottom: 8,
-  },
-  summaryText: {
-    fontSize: 14,
-    color: "#333",
-    lineHeight: 20,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(15, 23, 18, 0.35)",
-    justifyContent: "center",
-    padding: 20,
-  },
-  calendarModal: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    padding: 18,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 18,
-  },
-  modalHeaderContent: {
-    flex: 1,
-    marginRight: 12,
-  },
-  monthSwitchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 4,
-  },
-  monthSwitchButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#F2F5F2",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  monthSwitchButtonDisabled: {
-    backgroundColor: "#F5F5F5",
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#203124",
-  },
-  modalSubtitle: {
-    fontSize: 12,
-    color: "#607063",
-  },
-  weekdayRow: {
-    flexDirection: "row",
-    marginBottom: 8,
-  },
-  weekdayLabel: {
-    flex: 1,
     textAlign: "center",
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#708070",
-  },
-  calendarGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 16,
-  },
-  calendarCell: {
-    width: "14.285%",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,
-    borderRadius: 14,
-    minHeight: 52,
-  },
-  calendarCellActive: {
-    backgroundColor: "#EEF7EF",
-  },
-  calendarDateLabel: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#324234",
-    marginBottom: 4,
-  },
-  calendarDateLabelActive: {
-    color: "#1B5E20",
-  },
-  calendarToneDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  legendRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  legendText: {
-    fontSize: 12,
-    color: "#607063",
   },
 });
