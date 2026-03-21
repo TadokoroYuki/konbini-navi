@@ -1,21 +1,20 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  View,
-  Text,
+  RefreshControl,
   ScrollView,
   StyleSheet,
-  RefreshControl,
+  Text,
+  View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../hooks/useAuth";
 import { useNutrition } from "../hooks/useNutrition";
 import { getRecommendations } from "../lib/api-client";
 import {
-  Recommendation,
   BRAND_LABELS,
   NutrientStatus,
   NutritionStatus,
-  STATUS_LABELS,
+  Recommendation,
 } from "../lib/types";
 import { getToday } from "../lib/date";
 
@@ -32,7 +31,7 @@ const getStatusColor = (status: NutritionStatus): string => {
 
 const NUTRIENT_LABELS: Record<string, string> = {
   calories: "カロリー",
-  protein: "タンパク質",
+  protein: "たんぱく質",
   fat: "脂質",
   carbs: "炭水化物",
 };
@@ -59,7 +58,7 @@ const RecommendScreen = () => {
   }, [deviceId, today]);
 
   useEffect(() => {
-    fetchRecommendations();
+    void fetchRecommendations();
   }, [fetchRecommendations]);
 
   const onRefresh = async () => {
@@ -68,12 +67,11 @@ const RecommendScreen = () => {
     setRefreshing(false);
   };
 
-  // Collect deficient nutrients
   const deficientNutrients: { label: string; data: NutrientStatus }[] = [];
   if (nutrition) {
     const entries: [string, NutrientStatus][] = [
       ["カロリー", nutrition.calories],
-      ["タンパク質", nutrition.protein],
+      ["たんぱく質", nutrition.protein],
       ["脂質", nutrition.fat],
       ["炭水化物", nutrition.carbs],
     ];
@@ -84,6 +82,9 @@ const RecommendScreen = () => {
     }
   }
 
+  const topRecommendation = recommendations[0] ?? null;
+  const product = topRecommendation?.product;
+
   return (
     <ScrollView
       style={styles.container}
@@ -92,12 +93,11 @@ const RecommendScreen = () => {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      {/* Deficient Nutrients Summary */}
       {deficientNutrients.length > 0 ? (
         <View style={styles.deficiencyCard}>
           <View style={styles.deficiencyHeader}>
             <Ionicons name="alert-circle" size={22} color="#FF9800" />
-            <Text style={styles.deficiencyTitle}>不足している栄養素</Text>
+            <Text style={styles.deficiencyTitle}>不足している栄養</Text>
           </View>
           <View style={styles.deficiencyList}>
             {deficientNutrients.map(({ label, data }) => {
@@ -125,88 +125,94 @@ const RecommendScreen = () => {
         <View style={styles.adequateCard}>
           <Ionicons name="checkmark-circle" size={28} color="#4CAF50" />
           <Text style={styles.adequateText}>
-            栄養バランスは良好です！
+            栄養バランスは良好です
           </Text>
         </View>
       ) : null}
 
-      {/* Recommendations */}
       <Text style={styles.sectionTitle}>おすすめ商品</Text>
 
       {isLoading ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>読み込み中...</Text>
         </View>
-      ) : recommendations.length === 0 ? (
+      ) : !topRecommendation || !product ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="star-outline" size={48} color="#ccc" />
           <Text style={styles.emptyText}>
-            おすすめ商品がありません
+            現在おすすめできる商品はありません
           </Text>
         </View>
       ) : (
-        recommendations.map((rec, index) => (
-          <View key={index} style={styles.recommendCard}>
-            <View style={styles.recommendHeader}>
-              <View style={styles.recommendNameRow}>
-                <Text style={styles.recommendName}>
-                  {rec.product.name}
-                </Text>
-                <Text style={styles.recommendPrice}>
-                  {rec.product.price}円
-                </Text>
-              </View>
-              <Text style={styles.recommendBrand}>
-                {BRAND_LABELS[rec.product.brand]}
+        <View style={styles.recommendCard}>
+          <View style={styles.recommendHeader}>
+            <View style={styles.recommendNameRow}>
+              <Text style={styles.recommendName}>
+                {product.name}
+              </Text>
+              <Text style={styles.recommendPrice}>
+                {product.price}円
               </Text>
             </View>
+            <Text style={styles.recommendBrand}>
+              {BRAND_LABELS[product.brand]}
+            </Text>
+          </View>
 
-            {/* Nutrition Info */}
-            <View style={styles.nutritionRow}>
-              <View style={styles.nutritionItem}>
+          <View style={styles.scoreBadge}>
+            <Text style={styles.scoreBadgeLabel}>推薦スコア</Text>
+            <Text style={styles.scoreBadgeValue}>
+              {(topRecommendation.score ?? 0).toFixed(2)}
+            </Text>
+          </View>
+
+          <View style={styles.nutritionRow}>
+            <View style={styles.nutritionItem}>
                 <Text style={styles.nutritionItemLabel}>Cal</Text>
                 <Text style={styles.nutritionItemValue}>
-                  {Number(rec.product.nutrition.calories)} kcal
+                  {Number(product.nutrition.calories)} kcal
                 </Text>
               </View>
               <View style={styles.nutritionItem}>
                 <Text style={styles.nutritionItemLabel}>P</Text>
                 <Text style={styles.nutritionItemValue}>
-                  {rec.product.nutrition.protein}g
+                  {product.nutrition.protein}g
                 </Text>
               </View>
               <View style={styles.nutritionItem}>
                 <Text style={styles.nutritionItemLabel}>F</Text>
                 <Text style={styles.nutritionItemValue}>
-                  {rec.product.nutrition.fat}g
+                  {product.nutrition.fat}g
                 </Text>
               </View>
               <View style={styles.nutritionItem}>
                 <Text style={styles.nutritionItemLabel}>C</Text>
                 <Text style={styles.nutritionItemValue}>
-                  {rec.product.nutrition.carbs}g
+                  {product.nutrition.carbs}g
                 </Text>
               </View>
             </View>
 
-            {/* Reason */}
-            <View style={styles.reasonContainer}>
-              <Ionicons name="bulb-outline" size={16} color="#FF9800" />
-              <Text style={styles.reasonText}>{rec.reason}</Text>
-            </View>
+          <View style={styles.reasonContainer}>
+            <Ionicons name="sparkles-outline" size={16} color="#4CAF50" />
+            <Text style={styles.reasonText}>
+              現在の状態に対して最もスコアが高い商品です。
+            </Text>
+          </View>
 
-            {/* Deficient nutrients tags */}
-            <View style={styles.tagRow}>
-              {rec.deficientNutrients.map((nutrient) => (
-                <View key={nutrient} style={styles.tag}>
+          <View style={styles.tagRow}>
+            {Object.entries(product.nutrition).map(
+              ([key, value]) => (
+                <View key={key} style={styles.tag}>
                   <Text style={styles.tagText}>
-                    {NUTRIENT_LABELS[nutrient] ?? nutrient}を補える
+                    {NUTRIENT_LABELS[key] ?? key}: {value}
+                    {key === "calories" ? "kcal" : "g"}
                   </Text>
                 </View>
-              ))}
-            </View>
+              )
+            )}
           </View>
-        ))
+        </View>
       )}
     </ScrollView>
   );
@@ -300,6 +306,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#999",
     marginTop: 12,
+    textAlign: "center",
   },
   recommendCard: {
     backgroundColor: "#fff",
@@ -313,7 +320,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   recommendHeader: {
-    marginBottom: 10,
+    marginBottom: 12,
   },
   recommendNameRow: {
     flexDirection: "row",
@@ -336,13 +343,32 @@ const styles = StyleSheet.create({
     color: "#888",
     marginTop: 2,
   },
+  scoreBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "#EDF6EE",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    marginBottom: 12,
+  },
+  scoreBadgeLabel: {
+    fontSize: 11,
+    color: "#4A6651",
+    fontWeight: "700",
+  },
+  scoreBadgeValue: {
+    fontSize: 18,
+    color: "#2E7D32",
+    fontWeight: "800",
+    marginTop: 2,
+  },
   nutritionRow: {
     flexDirection: "row",
     backgroundColor: "#f9f9f9",
     borderRadius: 8,
     padding: 10,
     justifyContent: "space-around",
-    marginBottom: 10,
+    marginBottom: 12,
   },
   nutritionItem: {
     alignItems: "center",
@@ -375,14 +401,14 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   tag: {
-    backgroundColor: "#FFF3E0",
+    backgroundColor: "#F2F4F7",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
   tagText: {
     fontSize: 11,
-    color: "#E65100",
+    color: "#5B6470",
     fontWeight: "600",
   },
 });
