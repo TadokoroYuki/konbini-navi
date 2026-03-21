@@ -9,11 +9,10 @@ import (
 
 type Calculator struct {
 	recordClient *RecordClient
-	profileRepo  *ProfileRepository
 }
 
-func NewCalculator(recordClient *RecordClient, profileRepo *ProfileRepository) *Calculator {
-	return &Calculator{recordClient: recordClient, profileRepo: profileRepo}
+func NewCalculator(recordClient *RecordClient) *Calculator {
+	return &Calculator{recordClient: recordClient}
 }
 
 func (c *Calculator) Calculate(ctx context.Context, userID string, date string) (*model.NutritionSummary, error) {
@@ -34,12 +33,6 @@ func (c *Calculator) Calculate(ctx context.Context, userID string, date string) 
 	}
 
 	target := model.DefaultNutritionTarget
-	if c.profileRepo != nil {
-		profile, err := c.profileRepo.GetByUserID(ctx, userID)
-		if err == nil && profile != nil {
-			target = profile.NutritionTarget()
-		}
-	}
 
 	summary := &model.NutritionSummary{
 		Date:     date,

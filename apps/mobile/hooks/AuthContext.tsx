@@ -23,7 +23,7 @@ interface AuthUser {
 
 /** 開発環境では認証をスキップし、固定のdevユーザーで自動ログイン */
 const DEV_USER: AuthUser = {
-  id: "dev-user-001",
+  id: "dev-device-001",
   name: "開発者",
   email: "dev@local",
 };
@@ -36,7 +36,7 @@ const isDevMode = (): boolean => {
 interface AuthContextType {
   user: AuthUser | null;
   token: string | null;
-  userId: string | null;
+  deviceId: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   signIn: (email: string, password: string) => Promise<void>;
@@ -203,7 +203,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       value={{
         user,
         token,
-        userId: user?.id ?? null,
+        deviceId: user?.id ?? null,
         isLoading,
         isAuthenticated: (!!token && !!user) || (isDevMode() && !!user),
         signIn,

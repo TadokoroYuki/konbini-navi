@@ -33,13 +33,6 @@ spec:
             name: records
             port:
               number: 8810
-      - path: /v1/users/*/profile
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: nutrition
-            port:
-              number: 1056
       - path: /v1/users/*/nutrition
         pathType: ImplementationSpecific
         backend:

@@ -80,28 +80,28 @@ const NutrientMini = ({ label, data, unit }: NutrientMiniProps) => {
 };
 
 const HistoryScreen = () => {
-  const { userId } = useAuth();
+  const { deviceId } = useAuth();
   const [selectedDate, setSelectedDate] = useState(getToday());
   const [records, setRecords] = useState<MealRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { nutrition, refetch: refetchNutrition } = useNutrition(userId, selectedDate);
+  const { nutrition, refetch: refetchNutrition } = useNutrition(deviceId, selectedDate);
 
   const isToday = selectedDate === getToday();
 
   const fetchRecords = useCallback(async () => {
-    if (!userId) return;
+    if (!deviceId) return;
     setIsLoading(true);
     try {
-      const data = await listRecords(userId, selectedDate);
+      const data = await listRecords(deviceId, selectedDate);
       setRecords(data);
     } catch {
       setRecords([]);
     } finally {
       setIsLoading(false);
     }
-  }, [userId, selectedDate]);
+  }, [deviceId, selectedDate]);
 
   useFocusEffect(
     useCallback(() => {
@@ -118,9 +118,9 @@ const HistoryScreen = () => {
 
   const handleDelete = (record: MealRecord) => {
     const doDelete = async () => {
-      if (!userId) return;
+      if (!deviceId) return;
       try {
-        await deleteRecord(userId, record.recordId);
+        await deleteRecord(deviceId, record.recordId);
         setRecords((prev) =>
           prev.filter((r) => r.recordId !== record.recordId)
         );

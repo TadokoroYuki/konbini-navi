@@ -38,25 +38,25 @@ const NUTRIENT_LABELS: Record<string, string> = {
 };
 
 const RecommendScreen = () => {
-  const { userId } = useAuth();
+  const { deviceId } = useAuth();
   const today = getToday();
-  const { nutrition } = useNutrition(userId, today);
+  const { nutrition } = useNutrition(deviceId, today);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchRecommendations = useCallback(async () => {
-    if (!userId) return;
+    if (!deviceId) return;
     setIsLoading(true);
     try {
-      const data = await getRecommendations(userId, today);
+      const data = await getRecommendations(deviceId, today);
       setRecommendations(data);
     } catch {
       setRecommendations([]);
     } finally {
       setIsLoading(false);
     }
-  }, [userId, today]);
+  }, [deviceId, today]);
 
   useEffect(() => {
     fetchRecommendations();
