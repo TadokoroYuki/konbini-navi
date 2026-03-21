@@ -169,9 +169,10 @@ func main() {
 		writeJSON(w, 200, map[string]string{"status": "ok"})
 	})
 
+	// Apply middleware: CORS -> Auth
 	httpSrv := &http.Server{
 		Addr:    ":" + httpPort,
-		Handler: middleware.CORS(mux),
+		Handler: middleware.CORS(middleware.Auth(mux)),
 	}
 	go func() {
 		log.Printf("recommendations HTTP server listening on :%s", httpPort)

@@ -70,9 +70,10 @@ func main() {
 	mux.HandleFunc("DELETE /v1/users/{userId}/records/{recordId}", handler.Delete)
 	mux.HandleFunc("GET /health", handler.Health)
 
+	// Apply middleware: CORS -> Auth
 	httpSrv := &http.Server{
 		Addr:    ":" + httpPort,
-		Handler: middleware.CORS(mux),
+		Handler: middleware.CORS(middleware.Auth(mux)),
 	}
 	go func() {
 		log.Printf("records HTTP server listening on :%s", httpPort)
