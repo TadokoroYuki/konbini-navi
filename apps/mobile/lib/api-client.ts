@@ -186,7 +186,6 @@ export const getRecommendations = async (
   try {
     const result = await request<{
       recommendation?: Recommendation | null;
-      recommendations?: Recommendation[];
     }>(
       `/users/${userId}/recommendations?date=${date}`
     );
@@ -210,13 +209,6 @@ export const getRecommendations = async (
 
       return recommendation;
     };
-
-    if (Array.isArray(result.recommendations)) {
-      const normalized = await Promise.all(
-        result.recommendations.map(normalizeRecommendation)
-      );
-      return normalized.filter((item) => item.product);
-    }
 
     if (!result.recommendation) {
       return [];
