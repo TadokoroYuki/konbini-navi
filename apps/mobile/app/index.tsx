@@ -167,8 +167,8 @@ const StreakCard = ({
         </>
       ) : (
         <>
-          <Text style={styles.streakTitle}>連続達成はこれから</Text>
-          <Text style={styles.streakValue}>{`今日${STREAK_TARGET}点で開始`}</Text>
+          <Text style={styles.streakTitle}>{STREAK_TARGET}点以上の連続達成</Text>
+          <Text style={styles.streakValue}>0日</Text>
           <Text style={styles.streakHint}>
             まずは今日、目標点を超えるところから始めましょう。
           </Text>
