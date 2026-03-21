@@ -9,7 +9,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useAuth } from "../hooks/useAuth";
 import { useNutrition } from "../hooks/useNutrition";
 import { listRecords, deleteRecord } from "../lib/api-client";
@@ -21,7 +21,7 @@ import {
   STATUS_LABELS,
   NutritionStatus,
 } from "../lib/types";
-import { getToday } from "../lib/date";
+import { addDays, getToday } from "../lib/date";
 
 const formatDateStr = (dateStr: string): string => {
   const d = new Date(dateStr + "T00:00:00");
@@ -31,15 +31,6 @@ const formatDateStr = (dateStr: string): string => {
   const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
   const weekday = weekdays[d.getDay()];
   return `${year}年${month}月${day}日（${weekday}）`;
-};
-
-const addDays = (dateStr: string, days: number): string => {
-  const d = new Date(dateStr + "T00:00:00");
-  d.setDate(d.getDate() + days);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
 };
 
 const getStatusColor = (status: NutritionStatus): string => {
@@ -80,12 +71,19 @@ const NutrientMini = ({ label, data, unit }: NutrientMiniProps) => {
 
 const HistoryScreen = () => {
   const { deviceId } = useAuth();
+  const params = useLocalSearchParams<{ date?: string }>();
   const [selectedDate, setSelectedDate] = useState(getToday());
   const [records, setRecords] = useState<MealRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const { nutrition } = useNutrition(deviceId, selectedDate);
+
+  useEffect(() => {
+    if (typeof params.date === "string" && params.date) {
+      setSelectedDate(params.date);
+    }
+  }, [params.date]);
 
   const isToday = selectedDate === getToday();
 
@@ -365,3 +363,4 @@ const styles = StyleSheet.create({
     padding: 8,
   },
 });
+
