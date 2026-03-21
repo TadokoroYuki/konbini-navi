@@ -31,6 +31,8 @@ main (本番)
 - `gofmt` でフォーマット
 - エラーは必ずハンドリング（`_` で無視しない）
 - Clean Architecture: handler → service → repository
+- 標準 `http.ServeMux` でHTTPルーティング
+- サービス間通信に gRPC を使用
 
 ### コミットメッセージ
 
@@ -45,9 +47,8 @@ main (本番)
 
 - 新しい画面は `apps/mobile/app/` に追加
 - 共有コンポーネントは `apps/mobile/components/`
-- APIハンドラーは `apps/api/internal/handler/`
-- ビジネスロジックは `apps/api/internal/service/`
-- DB操作は `apps/api/internal/repository/`
+- 各サービスのエントリポイントは `apps/api/cmd/{service}/main.go`
+- サービスごとのコードは `apps/api/services/{service}/`
 
 ## 型の共有
 
