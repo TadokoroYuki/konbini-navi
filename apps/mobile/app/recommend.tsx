@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
   RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../hooks/useAuth";
@@ -44,16 +45,24 @@ const RecommendScreen = () => {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [slowMessage, setSlowMessage] = useState(false);
+  const slowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchRecommendations = useCallback(async () => {
     if (!deviceId) return;
     setIsLoading(true);
+    setSlowMessage(false);
+    const timer = setTimeout(() => {
+      setSlowMessage(true);
+    }, 3000);
     try {
       const data = await getRecommendations(deviceId, today);
       setRecommendations(data);
     } catch {
       setRecommendations([]);
     } finally {
+      clearTimeout(timer);
+      setSlowMessage(false);
       setIsLoading(false);
     }
   }, [deviceId, today]);
@@ -135,7 +144,9 @@ const RecommendScreen = () => {
 
       {isLoading ? (
         <View style={styles.emptyContainer}>
+          <ActivityIndicator size="large" color="#4CAF50" />
           <Text style={styles.emptyText}>読み込み中...</Text>
+          {slowMessage && <Text style={styles.slowText}>通信に時間がかかっています</Text>}
         </View>
       ) : recommendations.length === 0 ? (
         <View style={styles.emptyContainer}>
@@ -299,6 +310,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     color: "#999",
+    marginTop: 12,
+  },
+  slowText: {
+    fontSize: 13,
+    color: "#888",
     marginTop: 12,
   },
   recommendCard: {

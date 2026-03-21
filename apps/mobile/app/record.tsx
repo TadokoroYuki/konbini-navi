@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -37,6 +37,9 @@ const RecordScreen = () => {
   const [todayRecords, setTodayRecords] = useState<MealRecord[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [slowSearchMessage, setSlowSearchMessage] = useState(false);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const slowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const today = getToday();
 
@@ -59,9 +62,12 @@ const RecordScreen = () => {
     handleSearch("");
   }, []);
 
-  const handleSearch = async (query: string) => {
-    setSearchQuery(query);
+  const executeSearch = async (query: string) => {
     setIsSearching(true);
+    setSlowSearchMessage(false);
+    slowTimer.current = setTimeout(() => {
+      setSlowSearchMessage(true);
+    }, 3000);
     try {
       const results = await searchProducts({
         q: query || undefined,
@@ -71,8 +77,18 @@ const RecordScreen = () => {
     } catch {
       // ignore
     } finally {
+      if (slowTimer.current) clearTimeout(slowTimer.current);
+      setSlowSearchMessage(false);
       setIsSearching(false);
     }
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      executeSearch(query);
+    }, 300);
   };
 
   const handleRecord = async (product: Product) => {
@@ -200,7 +216,12 @@ const RecordScreen = () => {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             {isSearching ? (
-              <ActivityIndicator size="small" color="#4CAF50" />
+              <>
+                <ActivityIndicator size="large" color="#4CAF50" />
+                {slowSearchMessage && (
+                  <Text style={styles.slowText}>通信に時間がかかっています</Text>
+                )}
+              </>
             ) : (
               <Text style={styles.emptyText}>商品が見つかりません</Text>
             )}
@@ -349,6 +370,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     color: "#999",
+  },
+  slowText: {
+    fontSize: 13,
+    color: "#888",
+    marginTop: 12,
   },
   todayRecordsSection: {
     marginTop: 16,

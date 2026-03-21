@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Alert,
   RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
@@ -84,6 +85,8 @@ const HistoryScreen = () => {
   const [records, setRecords] = useState<MealRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [slowMessage, setSlowMessage] = useState(false);
+  const slowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { nutrition } = useNutrition(deviceId, selectedDate);
 
@@ -92,12 +95,18 @@ const HistoryScreen = () => {
   const fetchRecords = useCallback(async () => {
     if (!deviceId) return;
     setIsLoading(true);
+    setSlowMessage(false);
+    const timer = setTimeout(() => {
+      setSlowMessage(true);
+    }, 3000);
     try {
       const data = await listRecords(deviceId, selectedDate);
       setRecords(data);
     } catch {
       setRecords([]);
     } finally {
+      clearTimeout(timer);
+      setSlowMessage(false);
       setIsLoading(false);
     }
   }, [deviceId, selectedDate]);
@@ -198,7 +207,9 @@ const HistoryScreen = () => {
       {/* Records */}
       {isLoading ? (
         <View style={styles.emptyContainer}>
+          <ActivityIndicator size="large" color="#4CAF50" />
           <Text style={styles.emptyText}>読み込み中...</Text>
+          {slowMessage && <Text style={styles.slowText}>通信に時間がかかっています</Text>}
         </View>
       ) : records.length === 0 ? (
         <View style={styles.emptyContainer}>
@@ -318,6 +329,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     color: "#999",
+    marginTop: 12,
+  },
+  slowText: {
+    fontSize: 13,
+    color: "#888",
     marginTop: 12,
   },
   mealGroup: {
