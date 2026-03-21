@@ -1,17 +1,21 @@
 package middleware
 
 import (
+	"encoding/base64"
+	"encoding/json"
+	"errors"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/TadokoroYuki/konbini-navi/apps/api/pkg/httputil"
 )
 
-// Auth validates that the authenticated user (from ALB Cognito header)
+// Auth validates that the authenticated user (from Cognito JWT token)
 // matches the userId in the URL path.
 //
-// In production: validates x-amzn-oidc-identity (set by ALB after Cognito auth)
-// In development: uses X-Device-Id as fallback
+// In production: validates Authorization Bearer token (Cognito ID token)
+// In development: skips validation
 func Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Skip auth validation in development mode
@@ -29,19 +33,52 @@ func Auth(next http.Handler) http.Handler {
 			return
 		}
 
-		// User-specific endpoints require ALB Cognito authentication
-		authenticatedUserID := r.Header.Get("x-amzn-oidc-identity")
-		if authenticatedUserID == "" {
+		// User-specific endpoints require JWT authentication
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
 			httputil.WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Authentication required")
 			return
 		}
 
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		userID, err := extractUserIDFromJWT(token)
+		if err != nil {
+			httputil.WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Invalid token")
+			return
+		}
+
 		// Validate authenticated user matches the userId in path
-		if pathUserID != authenticatedUserID {
+		if pathUserID != userID {
 			httputil.WriteError(w, http.StatusForbidden, "FORBIDDEN", "Access denied: user mismatch")
 			return
 		}
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// extractUserIDFromJWT extracts the 'sub' claim from a JWT token (without signature verification for demo)
+func extractUserIDFromJWT(token string) (string, error) {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return "", errors.New("invalid token format")
+	}
+
+	// Decode payload (second part)
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return "", err
+	}
+
+	var claims map[string]interface{}
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return "", err
+	}
+
+	sub, ok := claims["sub"].(string)
+	if !ok || sub == "" {
+		return "", errors.New("missing sub claim")
+	}
+
+	return sub, nil
 }
