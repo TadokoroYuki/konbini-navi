@@ -72,6 +72,19 @@ export interface Recommendation {
   deficientNutrients: string[];
 }
 
+export interface UserProfile {
+  userId: string;
+  gender?: string;
+  age?: number;
+  heightCm?: number;
+  weightKg?: number;
+  activityLevel?: string;
+  targetCalories?: number;
+  targetProtein?: number;
+  targetFat?: number;
+  targetCarbs?: number;
+}
+
 export interface ApiError {
   code: string;
   message: string;

@@ -114,6 +114,16 @@ const RootLayoutInner = () => {
           }}
         />
         <Tabs.Screen
+          name="profile"
+          options={{
+            title: "設定",
+            headerTitle: "プロフィール設定",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="person" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="auth"
           options={{
             href: null,

@@ -5,6 +5,7 @@ import {
   CreateRecordRequest,
   NutritionSummary,
   Recommendation,
+  UserProfile,
   Brand,
   Category,
 } from "./types";
@@ -175,6 +176,26 @@ export const getNutrition = async (
   } catch {
     return { ...mockNutritionSummary, date };
   }
+};
+
+// --- Profile ---
+
+export const getProfile = async (userId: string): Promise<UserProfile> => {
+  try {
+    return await request<UserProfile>(`/users/${userId}/profile`);
+  } catch {
+    return { userId };
+  }
+};
+
+export const updateProfile = async (
+  userId: string,
+  data: Partial<UserProfile>
+): Promise<UserProfile> => {
+  return await request<UserProfile>(`/users/${userId}/profile`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
 };
 
 // --- Recommendations ---
