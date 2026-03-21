@@ -69,6 +69,7 @@ export interface NutritionSummary {
 export interface Recommendation {
   product?: Product;
   productId?: string;
+  product_id?: string;
   date?: string;
   score?: number;
   reason?: string;

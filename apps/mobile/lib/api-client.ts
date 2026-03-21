@@ -197,9 +197,11 @@ export const getRecommendations = async (
         return recommendation;
       }
 
-      if (recommendation.productId) {
+      const productId = recommendation.productId ?? recommendation.product_id;
+
+      if (productId) {
         try {
-          const product = await getProduct(recommendation.productId);
+          const product = await getProduct(productId);
           return { ...recommendation, product };
         } catch {
           return recommendation;
