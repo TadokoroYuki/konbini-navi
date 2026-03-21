@@ -30,7 +30,7 @@ import { getToday } from "../lib/date";
 const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
 
 const RecordScreen = () => {
-  const { deviceId } = useAuth();
+  const { userId } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMealType, setSelectedMealType] = useState<MealType>("lunch");
   const [products, setProducts] = useState<Product[]>([]);
@@ -41,14 +41,14 @@ const RecordScreen = () => {
   const today = getToday();
 
   const fetchTodayRecords = useCallback(async () => {
-    if (!deviceId) return;
+    if (!userId) return;
     try {
-      const records = await listRecords(deviceId, today);
+      const records = await listRecords(userId, today);
       setTodayRecords(records);
     } catch {
       // ignore
     }
-  }, [deviceId, today]);
+  }, [userId, today]);
 
   useEffect(() => {
     fetchTodayRecords();
@@ -76,12 +76,12 @@ const RecordScreen = () => {
   };
 
   const handleRecord = async (product: Product) => {
-    if (!deviceId) return;
+    if (!userId) return;
 
     const doRecord = async () => {
       setIsRecording(true);
       try {
-        const record = await createRecord(deviceId, {
+        const record = await createRecord(userId, {
           productId: product.productId,
           date: today,
           mealType: selectedMealType,
