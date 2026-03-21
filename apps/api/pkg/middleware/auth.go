@@ -20,26 +20,28 @@ func Auth(next http.Handler) http.Handler {
 			return
 		}
 
-		// Get authenticated user ID from ALB Cognito header
-		authenticatedUserID := r.Header.Get("x-amzn-oidc-identity")
-
-		// Fallback to X-Device-Id for local development
-		if authenticatedUserID == "" {
-			authenticatedUserID = r.Header.Get("X-Device-Id")
-		}
-
 		// Get userId from URL path (e.g., /v1/users/{userId}/records)
 		pathUserID := r.PathValue("userId")
 
-		// If path contains userId, validate it matches authenticated user
-		if pathUserID != "" && authenticatedUserID != "" {
-			if pathUserID != authenticatedUserID {
-				httputil.WriteError(w, http.StatusForbidden, "FORBIDDEN", "Access denied: user mismatch")
-				return
-			}
+		// Public endpoints (e.g., /v1/products) don't require authentication
+		if pathUserID == "" {
+			next.ServeHTTP(w, r)
+			return
 		}
 
-		// Public endpoints (e.g., /v1/products) don't require user validation
+		// User-specific endpoints require ALB Cognito authentication
+		authenticatedUserID := r.Header.Get("x-amzn-oidc-identity")
+		if authenticatedUserID == "" {
+			httputil.WriteError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Authentication required")
+			return
+		}
+
+		// Validate authenticated user matches the userId in path
+		if pathUserID != authenticatedUserID {
+			httputil.WriteError(w, http.StatusForbidden, "FORBIDDEN", "Access denied: user mismatch")
+			return
+		}
+
 		next.ServeHTTP(w, r)
 	})
 }

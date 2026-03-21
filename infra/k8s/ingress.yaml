@@ -14,11 +14,11 @@ metadata:
     alb.ingress.kubernetes.io/unhealthy-threshold-count: "2"
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
     alb.ingress.kubernetes.io/tags: Project=konbini-navi,Environment=production
-    # Cognito認証（デプロイ後に値を設定）
-    # alb.ingress.kubernetes.io/auth-type: cognito
-    # alb.ingress.kubernetes.io/auth-idp-cognito: '{"userPoolArn":"REPLACE_WITH_USER_POOL_ARN","userPoolClientId":"REPLACE_WITH_CLIENT_ID","userPoolDomain":"konbini-navi"}'
-    # alb.ingress.kubernetes.io/auth-on-unauthenticated-request: authenticate
-    # alb.ingress.kubernetes.io/auth-scope: openid
+    # Cognito認証
+    alb.ingress.kubernetes.io/auth-type: cognito
+    alb.ingress.kubernetes.io/auth-idp-cognito: '{"userPoolArn":"arn:aws:cognito-idp:ap-northeast-1:974857491219:userpool/ap-northeast-1_QLQs4UifP","userPoolClientId":"19fgos893v1n3uif33l2pl430l","userPoolDomain":"konbini-navi"}'
+    alb.ingress.kubernetes.io/auth-on-unauthenticated-request: authenticate
+    alb.ingress.kubernetes.io/auth-scope: openid
 spec:
   ingressClassName: alb
   rules:
