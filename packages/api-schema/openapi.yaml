@@ -1,14 +1,14 @@
 openapi: 3.0.3
 info:
   title: Konbini Navi API
-  version: 1.0.0
-  description: コンビニ食事管理アプリAPI
+  version: 2.0.0
+  description: コンビニ食事管理アプリAPI（マイクロサービス構成）
 
 servers:
   - url: http://localhost:8080/v1
-    description: Local development
+    description: Local development (nginx API gateway)
   - url: https://api.example.com/v1
-    description: Production
+    description: Production (ALB Ingress)
 
 paths:
   /products:
@@ -21,7 +21,7 @@ paths:
           in: query
           schema:
             type: string
-          description: キーワード検索
+          description: キーワード検索（ILIKE部分一致）
         - name: brand
           in: query
           schema:
@@ -88,11 +88,10 @@ paths:
             type: string
         - name: date
           in: query
-          required: true
           schema:
             type: string
             format: date
-          description: "YYYY-MM-DD形式"
+          description: "YYYY-MM-DD形式。省略時はユーザーの全記録を返す"
       responses:
         "200":
           description: 食事記録一覧
@@ -176,10 +175,10 @@ paths:
             type: string
         - name: date
           in: query
-          required: true
           schema:
             type: string
             format: date
+          description: "YYYY-MM-DD形式。省略時は当日"
       responses:
         "200":
           description: 栄養バランス
@@ -190,8 +189,12 @@ paths:
 
   /users/{userId}/recommendations:
     get:
-      operationId: getRecommendations
+      operationId: getRecommendation
       summary: おすすめ商品取得
+      description: |
+        栄養不足と味の好みに基づき、最適な1商品を推薦する。
+        キャッシュ（recommendationsテーブル）がdate一致でヒットすればそれを返し、
+        なければリアルタイム計算してキャッシュに保存する。
       tags: [recommendations]
       parameters:
         - name: userId
@@ -201,23 +204,69 @@ paths:
             type: string
         - name: date
           in: query
-          required: true
           schema:
             type: string
             format: date
+          description: "YYYY-MM-DD形式。省略時は当日"
       responses:
         "200":
-          description: おすすめ商品一覧
+          description: おすすめ商品（該当なしの場合 recommendation は null）
           content:
             application/json:
               schema:
                 type: object
-                required: [recommendations]
+                required: [recommendation]
                 properties:
-                  recommendations:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Recommendation"
+                  recommendation:
+                    nullable: true
+                    allOf:
+                      - $ref: "#/components/schemas/RecommendationResult"
+
+  /users/{userId}/recommendations/refresh:
+    post:
+      operationId: refreshRecommendation
+      summary: おすすめ再計算（内部用）
+      description: |
+        records サービスから記録の作成・削除時に非同期で呼び出される。
+        キャッシュを削除し、リアルタイムで再計算・保存する。
+      tags: [recommendations]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 再計算結果
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [recommendation]
+                properties:
+                  recommendation:
+                    nullable: true
+                    allOf:
+                      - $ref: "#/components/schemas/RecommendationResult"
+
+  /health:
+    get:
+      operationId: healthCheck
+      summary: ヘルスチェック（全サービス共通）
+      tags: [health]
+      responses:
+        "200":
+          description: 正常
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: ok
 
 components:
   schemas:
@@ -236,10 +285,10 @@ components:
       enum: [breakfast, lunch, dinner, snack]
       description: 食事タイプ
 
-    NutritionStatus:
+    NutritionStatusEnum:
       type: string
       enum: [deficient, adequate, excessive]
-      description: "不足/適量/多い"
+      description: "不足(ratio<0.7) / 適量(0.7-1.2) / 多い(>1.2)"
 
     Nutrition:
       type: object
@@ -259,10 +308,10 @@ components:
           description: 炭水化物(g)
         fiber:
           type: number
-          description: 食物繊維(g)
+          description: 食物繊維(g)。omitemptyのため0の場合省略される
         salt:
           type: number
-          description: 食塩相当量(g)
+          description: 食塩相当量(g)。omitemptyのため0の場合省略される
 
     Product:
       type: object
@@ -285,19 +334,22 @@ components:
           type: string
         description:
           type: string
+          description: 商品説明。omitemptyのため空の場合省略される
 
     Record:
       type: object
-      required: [recordId, userId, productId, product, date, mealType, createdAt]
+      required: [recordId, userId, productId, date, mealType, createdAt]
       properties:
         recordId:
           type: string
+          description: ULID形式の記録ID
         userId:
           type: string
         productId:
           type: string
         product:
           $ref: "#/components/schemas/Product"
+          description: 商品詳細。omitemptyのため省略される場合がある
         date:
           type: string
           format: date
@@ -321,7 +373,7 @@ components:
 
     NutrientStatus:
       type: object
-      required: [actual, target, status]
+      required: [actual, target, ratio, status]
       properties:
         actual:
           type: number
@@ -331,7 +383,7 @@ components:
           type: number
           description: actual / target
         status:
-          $ref: "#/components/schemas/NutritionStatus"
+          $ref: "#/components/schemas/NutritionStatusEnum"
 
     NutritionSummary:
       type: object
@@ -349,20 +401,15 @@ components:
         carbs:
           $ref: "#/components/schemas/NutrientStatus"
 
-    Recommendation:
+    RecommendationResult:
       type: object
-      required: [product, reason, deficientNutrients]
+      required: [product, score]
       properties:
         product:
           $ref: "#/components/schemas/Product"
-        reason:
-          type: string
-          description: おすすめ理由
-        deficientNutrients:
-          type: array
-          items:
-            type: string
-          description: 補える不足栄養素
+        score:
+          type: number
+          description: "コサイン類似度ベースのスコア (0.6*栄養類似度 + 0.4*味の好み類似度)"
 
     Error:
       type: object
@@ -370,5 +417,6 @@ components:
       properties:
         code:
           type: string
+          description: "BAD_REQUEST | NOT_FOUND | INTERNAL"
         message:
           type: string
