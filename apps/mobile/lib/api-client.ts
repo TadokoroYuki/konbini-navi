@@ -184,10 +184,44 @@ export const getRecommendations = async (
   date: string
 ): Promise<Recommendation[]> => {
   try {
-    const result = await request<{ recommendations: Recommendation[] }>(
+    const result = await request<{
+      recommendation?: Recommendation | null;
+      recommendations?: Recommendation[];
+    }>(
       `/users/${userId}/recommendations?date=${date}`
     );
-    return result.recommendations;
+    const normalizeRecommendation = async (
+      recommendation: Recommendation
+    ): Promise<Recommendation> => {
+      if (recommendation.product) {
+        return recommendation;
+      }
+
+      if (recommendation.productId) {
+        try {
+          const product = await getProduct(recommendation.productId);
+          return { ...recommendation, product };
+        } catch {
+          return recommendation;
+        }
+      }
+
+      return recommendation;
+    };
+
+    if (Array.isArray(result.recommendations)) {
+      const normalized = await Promise.all(
+        result.recommendations.map(normalizeRecommendation)
+      );
+      return normalized.filter((item) => item.product);
+    }
+
+    if (!result.recommendation) {
+      return [];
+    }
+
+    const normalized = await normalizeRecommendation(result.recommendation);
+    return normalized.product ? [normalized] : [];
   } catch {
     return mockRecommendations;
   }
