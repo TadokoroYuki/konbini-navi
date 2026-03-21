@@ -34,7 +34,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   web: {
     favicon: "./assets/favicon.png",
   },
-  plugins: ["expo-router", "expo-font"],
+  plugins: ["expo-router"],
   extra: {
     apiUrl: getApiUrl(),
     cognitoUserPoolId: process.env.COGNITO_USER_POOL_ID ?? "",
