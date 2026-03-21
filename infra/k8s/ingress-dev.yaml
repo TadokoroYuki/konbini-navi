@@ -1,0 +1,50 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: konbini-navi-ingress-dev
+  namespace: default
+  annotations:
+    # AWS Load Balancer Controller設定
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15"
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
+    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/tags: Project=konbini-navi,Environment=dev
+    alb.ingress.kubernetes.io/group.name: dev  # 別ALBグループ（mainと分離）
+spec:
+  ingressClassName: alb
+  rules:
+  - http:
+      paths:
+      - path: /v1/products
+        pathType: Prefix
+        backend:
+          service:
+            name: products
+            port:
+              number: 7111
+      - path: /v1/users/*/records
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: records
+            port:
+              number: 8810
+      - path: /v1/users/*/nutrition
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: nutrition
+            port:
+              number: 1056
+      - path: /v1/users/*/recommendations
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: recommendations
+            port:
+              number: 2525
