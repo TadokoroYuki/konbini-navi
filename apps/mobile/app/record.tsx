@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  ScrollView,
   TouchableOpacity,
   StyleSheet,
   Alert,
@@ -12,6 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "../hooks/useAuth";
 import {
   searchProducts,
@@ -118,6 +118,35 @@ const RecordScreen = () => {
           { text: "キャンセル", style: "cancel" },
           { text: "記録する", onPress: doRecord },
         ]
+      );
+    }
+  };
+
+  const openReceiptCamera = async () => {
+    if (Platform.OS === "web") {
+      window.alert("Web 版のレシート撮影は未対応です。モバイル端末で試してください。");
+      return;
+    }
+
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(
+        "カメラ権限が必要です",
+        "レシートを撮影するにはカメラへのアクセスを許可してください。"
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
+      cameraType: ImagePicker.CameraType.back,
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      Alert.alert(
+        "レシートを撮影しました",
+        "読み取り処理は次の実装で追加します。"
       );
     }
   };
@@ -234,6 +263,14 @@ const RecordScreen = () => {
           ) : null
         }
       />
+
+      <TouchableOpacity
+        style={styles.cameraFab}
+        onPress={openReceiptCamera}
+        activeOpacity={0.9}
+      >
+        <Ionicons name="camera" size={26} color="#fff" />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -379,5 +416,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#666",
     marginTop: 2,
+  },
+  cameraFab: {
+    position: "absolute",
+    right: 20,
+    bottom: 28,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#2E7D32",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    elevation: 8,
   },
 });
