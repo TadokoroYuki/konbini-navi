@@ -41,6 +41,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   plugins: ["expo-router"],
   extra: {
     apiUrl: getApiUrl(),
+    calendarStartedMonth: process.env.EXPO_PUBLIC_CALENDAR_STARTED_MONTH ?? "",
     cognitoUserPoolId: process.env.COGNITO_USER_POOL_ID ?? "",
     cognitoClientId: process.env.COGNITO_CLIENT_ID ?? "",
     cognitoRegion: process.env.COGNITO_REGION ?? "us-east-1",

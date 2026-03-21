@@ -1,4 +1,5 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Modal,
   RefreshControl,
@@ -10,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
+import Constants from "expo-constants";
 import { useAuth } from "../hooks/useAuth";
 import { useNutrition } from "../hooks/useNutrition";
 import {
@@ -29,6 +31,9 @@ import {
 } from "../lib/date";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+const CALENDAR_STARTED_MONTH_KEY = "@konbini_navi_calendar_started_month";
+const DEV_CALENDAR_STARTED_MONTH =
+  Constants.expoConfig?.extra?.calendarStartedMonth ?? "";
 
 const formatFullDate = (dateStr: string): string => {
   const d = parseDateKey(dateStr);
@@ -172,14 +177,35 @@ const HomeScreen = () => {
   const [selectedDate, setSelectedDate] = useState(formatDateKey(new Date()));
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(getMonthKey(selectedDate));
+  const [startedMonth, setStartedMonth] = useState(getMonthKey(selectedDate));
   const selectedMonth = calendarMonth;
   const { nutrition, isLoading, refetch } = useNutrition(deviceId, selectedDate);
   const calendar = useNutritionCalendar(deviceId, selectedMonth);
   const [refreshing, setRefreshing] = useState(false);
+  const currentMonth = getMonthKey(formatDateKey(new Date()));
 
   useEffect(() => {
     setCalendarMonth(getMonthKey(selectedDate));
   }, [selectedDate]);
+
+  useEffect(() => {
+    const ensureStartedMonth = async () => {
+      const current = getMonthKey(formatDateKey(new Date()));
+      if (DEV_CALENDAR_STARTED_MONTH) {
+        setStartedMonth(DEV_CALENDAR_STARTED_MONTH);
+        return;
+      }
+      const stored = await AsyncStorage.getItem(CALENDAR_STARTED_MONTH_KEY);
+      if (stored) {
+        setStartedMonth(stored);
+        return;
+      }
+      await AsyncStorage.setItem(CALENDAR_STARTED_MONTH_KEY, current);
+      setStartedMonth(current);
+    };
+
+    void ensureStartedMonth();
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -194,6 +220,8 @@ const HomeScreen = () => {
   };
 
   const calendarGrid = useMemo(() => buildCalendarGrid(selectedMonth), [selectedMonth]);
+  const canGoPrevMonth = calendarMonth > startedMonth;
+  const canGoNextMonth = calendarMonth < currentMonth;
 
   return (
     <>
@@ -257,20 +285,36 @@ const HomeScreen = () => {
               <View style={styles.modalHeaderContent}>
                 <View style={styles.monthSwitchRow}>
                   <TouchableOpacity
-                    style={styles.monthSwitchButton}
-                    onPress={() => setCalendarMonth(addMonths(calendarMonth, -1))}
+                    style={[
+                      styles.monthSwitchButton,
+                      !canGoPrevMonth && styles.monthSwitchButtonDisabled,
+                    ]}
+                    onPress={() => canGoPrevMonth && setCalendarMonth(addMonths(calendarMonth, -1))}
+                    disabled={!canGoPrevMonth}
                   >
-                    <Ionicons name="chevron-back" size={18} color="#203124" />
+                    <Ionicons
+                      name="chevron-back"
+                      size={18}
+                      color={canGoPrevMonth ? "#203124" : "#B0B8B1"}
+                    />
                   </TouchableOpacity>
                   <Text style={styles.modalTitle}>
                     {parseDateKey(`${selectedMonth}-01`).getFullYear()}年
                     {parseDateKey(`${selectedMonth}-01`).getMonth() + 1}月
                   </Text>
                   <TouchableOpacity
-                    style={styles.monthSwitchButton}
-                    onPress={() => setCalendarMonth(addMonths(calendarMonth, 1))}
+                    style={[
+                      styles.monthSwitchButton,
+                      !canGoNextMonth && styles.monthSwitchButtonDisabled,
+                    ]}
+                    onPress={() => canGoNextMonth && setCalendarMonth(addMonths(calendarMonth, 1))}
+                    disabled={!canGoNextMonth}
                   >
-                    <Ionicons name="chevron-forward" size={18} color="#203124" />
+                    <Ionicons
+                      name="chevron-forward"
+                      size={18}
+                      color={canGoNextMonth ? "#203124" : "#B0B8B1"}
+                    />
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.modalSubtitle}>
