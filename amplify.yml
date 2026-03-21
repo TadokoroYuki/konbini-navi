@@ -9,8 +9,10 @@ applications:
       phases:
         preBuild:
           commands:
+            - echo "Installing pnpm..."
+            - npm install -g pnpm
             - echo "Installing dependencies..."
-            - npm ci
+            - cd ../.. && pnpm install --frozen-lockfile
         build:
           commands:
             - echo "Building Expo Web..."
@@ -21,4 +23,5 @@ applications:
           - '**/*'
       cache:
         paths:
+          - ../../node_modules/**/*
           - node_modules/**/*
