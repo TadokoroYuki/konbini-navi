@@ -9,13 +9,8 @@ import {
   StyleSheet,
   Text,
 } from "react-native";
-import { useFonts } from "expo-font";
 
 const RootLayoutInner = () => {
-  const [fontsLoaded] = useFonts({
-    ...Ionicons.font,
-  });
-
   const { isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
   const segments = useSegments();
@@ -32,7 +27,7 @@ const RootLayoutInner = () => {
     }
   }, [isLoading, isAuthenticated, segments]);
 
-  if (isLoading || !fontsLoaded) {
+  if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#4CAF50" />
