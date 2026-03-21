@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"net"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/lib/pq"
 	"google.golang.org/grpc"
 
 	nutritionpb "github.com/TadokoroYuki/konbini-navi/apps/api/gen/nutrition"
@@ -21,13 +23,24 @@ func main() {
 	httpPort := getEnv("HTTP_PORT", "1056")
 	grpcPort := getEnv("GRPC_PORT", "1057")
 	recordsGRPC := getEnv("RECORDS_GRPC_ADDR", "localhost:8811")
+	databaseURL := getEnv("DATABASE_URL", "")
 
 	recordClient, err := nutrition.NewRecordClient(recordsGRPC)
 	if err != nil {
 		log.Fatalf("failed to connect to records service: %v", err)
 	}
 
-	calculator := nutrition.NewCalculator(recordClient)
+	var profileRepo *nutrition.ProfileRepository
+	if databaseURL != "" {
+		db, err := sql.Open("postgres", databaseURL)
+		if err != nil {
+			log.Fatalf("failed to connect to database: %v", err)
+		}
+		defer db.Close()
+		profileRepo = nutrition.NewProfileRepository(db)
+	}
+
+	calculator := nutrition.NewCalculator(recordClient, profileRepo)
 	handler := nutrition.NewHandler(calculator)
 	grpcServer := nutrition.NewGRPCServer(calculator)
 
@@ -49,6 +62,13 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/users/{userId}/nutrition", handler.Get)
 	mux.HandleFunc("GET /health", handler.Health)
+
+	// Profile endpoints
+	if profileRepo != nil {
+		profileHandler := nutrition.NewProfileHandler(profileRepo)
+		mux.HandleFunc("GET /v1/users/{userId}/profile", profileHandler.Get)
+		mux.HandleFunc("PUT /v1/users/{userId}/profile", profileHandler.Upsert)
+	}
 
 	// Apply middleware: CORS -> Auth
 	httpSrv := &http.Server{

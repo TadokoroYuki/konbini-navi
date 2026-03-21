@@ -105,9 +105,9 @@ const getSummaryText = (
 };
 
 const HomeScreen = () => {
-  const { deviceId } = useAuth();
+  const { userId } = useAuth();
   const today = getToday();
-  const { nutrition, isLoading, refetch } = useNutrition(deviceId, today);
+  const { nutrition, isLoading, refetch } = useNutrition(userId, today);
   const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(
