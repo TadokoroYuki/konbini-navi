@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Platform,
   RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -115,28 +116,36 @@ const HistoryScreen = () => {
   };
 
   const handleDelete = (record: MealRecord) => {
-    Alert.alert(
-      "記録を削除",
-      `${record.product.name}の記録を削除しますか？`,
-      [
-        { text: "キャンセル", style: "cancel" },
-        {
-          text: "削除",
-          style: "destructive",
-          onPress: async () => {
-            if (!deviceId) return;
-            try {
-              await deleteRecord(deviceId, record.recordId);
-              setRecords((prev) =>
-                prev.filter((r) => r.recordId !== record.recordId)
-              );
-            } catch {
-              Alert.alert("エラー", "削除に失敗しました。");
-            }
-          },
-        },
-      ]
-    );
+    const doDelete = async () => {
+      if (!deviceId) return;
+      try {
+        await deleteRecord(deviceId, record.recordId);
+        setRecords((prev) =>
+          prev.filter((r) => r.recordId !== record.recordId)
+        );
+      } catch {
+        if (Platform.OS === "web") {
+          window.alert("削除に失敗しました。");
+        } else {
+          Alert.alert("エラー", "削除に失敗しました。");
+        }
+      }
+    };
+
+    if (Platform.OS === "web") {
+      if (window.confirm(`${record.product.name}の記録を削除しますか？`)) {
+        doDelete();
+      }
+    } else {
+      Alert.alert(
+        "記録を削除",
+        `${record.product.name}の記録を削除しますか？`,
+        [
+          { text: "キャンセル", style: "cancel" },
+          { text: "削除", style: "destructive", onPress: doDelete },
+        ]
+      );
+    }
   };
 
   const goToPrevDay = () => setSelectedDate(addDays(selectedDate, -1));
