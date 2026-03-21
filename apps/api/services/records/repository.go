@@ -51,7 +51,7 @@ func (r *Repository) ListByUserAndDate(ctx context.Context, userID string, date 
 			rec.CreatedAt = createdAt.Time.UTC().Format(time.RFC3339)
 		}
 
-		// Fetch product details via gRPC
+		// TODO: N+1 問題 — レコード数が多い場合、バッチ取得 (BatchGetProducts) に置き換える
 		product, err := r.productClient.GetByID(ctx, rec.ProductID)
 		if err == nil && product != nil {
 			rec.Product = product

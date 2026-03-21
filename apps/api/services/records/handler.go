@@ -1,9 +1,12 @@
 package records
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/json"
+	"log"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -13,12 +16,39 @@ import (
 )
 
 type Handler struct {
-	repo          *Repository
-	productClient *ProductClient
+	repo               *Repository
+	productClient      *ProductClient
+	recommendationsURL string
 }
 
-func NewHandler(repo *Repository, productClient *ProductClient) *Handler {
-	return &Handler{repo: repo, productClient: productClient}
+func NewHandler(repo *Repository, productClient *ProductClient, recommendationsURL string) *Handler {
+	return &Handler{repo: repo, productClient: productClient, recommendationsURL: recommendationsURL}
+}
+
+// refreshRecommendation は recommendations サービスに再計算を非同期で依頼する
+var refreshClient = &http.Client{Timeout: 10 * time.Second}
+
+func (h *Handler) refreshRecommendation(userID string) {
+	if h.recommendationsURL == "" {
+		return
+	}
+	go func() {
+		refreshURL := h.recommendationsURL + "/v1/users/" + url.PathEscape(userID) + "/recommendations/refresh"
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		req, err := http.NewRequestWithContext(ctx, "POST", refreshURL, nil)
+		if err != nil {
+			log.Printf("failed to create refresh request: %v", err)
+			return
+		}
+		resp, err := refreshClient.Do(req)
+		if err != nil {
+			log.Printf("failed to refresh recommendation for %s: %v", userID, err)
+			return
+		}
+		resp.Body.Close()
+		log.Printf("refreshed recommendation for user %s (status: %d)", userID, resp.StatusCode)
+	}()
 }
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
@@ -87,6 +117,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.refreshRecommendation(userID)
 	httputil.WriteJSON(w, http.StatusCreated, record)
 }
 
@@ -99,6 +130,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.refreshRecommendation(userID)
 	w.WriteHeader(http.StatusNoContent)
 }
 
