@@ -16,7 +16,7 @@ applications:
         build:
           commands:
             - echo "Building Expo Web..."
-            - npx expo export:web --output-dir dist
+            - npx expo export:web
       artifacts:
         baseDirectory: dist
         files:
