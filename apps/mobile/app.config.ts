@@ -39,7 +39,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     apiUrl: getApiUrl(),
     cognitoUserPoolId: process.env.COGNITO_USER_POOL_ID ?? "",
     cognitoClientId: process.env.COGNITO_CLIENT_ID ?? "",
-    cognitoRegion: process.env.COGNITO_REGION ?? "us-east-1",
+    cognitoRegion: process.env.COGNITO_REGION ?? "ap-northeast-1",
     router: {
       origin: false,
     },
