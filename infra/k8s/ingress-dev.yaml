@@ -24,27 +24,27 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: products
+            name: products-dev
             port:
               number: 7111
       - path: /v1/users/*/records
         pathType: ImplementationSpecific
         backend:
           service:
-            name: records
+            name: records-dev
             port:
               number: 8810
       - path: /v1/users/*/nutrition
         pathType: ImplementationSpecific
         backend:
           service:
-            name: nutrition
+            name: nutrition-dev
             port:
               number: 1056
       - path: /v1/users/*/recommendations
         pathType: ImplementationSpecific
         backend:
           service:
-            name: recommendations
+            name: recommendations-dev
             port:
               number: 2525

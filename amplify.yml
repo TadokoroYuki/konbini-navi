@@ -4,7 +4,7 @@ applications:
     env:
       variables:
         APP_VARIANT: production
-        API_URL: https://334vqe90fl.execute-api.ap-northeast-1.amazonaws.com/prod
+        API_URL: https://8ogxsuw2x7.execute-api.ap-northeast-1.amazonaws.com/prod
         # Cognito settings
         COGNITO_USER_POOL_ID: ap-northeast-1_QLQs4UifP
         COGNITO_CLIENT_ID: 19fgos893v1n3uif33l2pl430l

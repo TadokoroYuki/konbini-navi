@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: products-dev
+  namespace: default
+spec:
+  type: ClusterIP
+  ports:
+  - port: 7111
+    targetPort: 7111
+    protocol: TCP
+    name: http
+  - port: 7112
+    targetPort: 7112
+    protocol: TCP
+    name: grpc
+  selector:
+    app: konbini-navi-products-dev
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: records-dev
+  namespace: default
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8810
+    targetPort: 8810
+    protocol: TCP
+    name: http
+  - port: 8811
+    targetPort: 8811
+    protocol: TCP
+    name: grpc
+  selector:
+    app: konbini-navi-records-dev
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nutrition-dev
+  namespace: default
+spec:
+  type: ClusterIP
+  ports:
+  - port: 1056
+    targetPort: 1056
+    protocol: TCP
+    name: http
+  - port: 1057
+    targetPort: 1057
+    protocol: TCP
+    name: grpc
+  selector:
+    app: konbini-navi-nutrition-dev
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: recommendations-dev
+  namespace: default
+spec:
+  type: ClusterIP
+  ports:
+  - port: 2525
+    targetPort: 2525
+    protocol: TCP
+    name: http
+  - port: 2526
+    targetPort: 2526
+    protocol: TCP
+    name: grpc
+  selector:
+    app: konbini-navi-recommendations-dev
