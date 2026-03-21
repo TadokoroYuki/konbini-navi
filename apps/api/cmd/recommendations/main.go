@@ -36,9 +36,10 @@ func main() {
 	mux.HandleFunc("GET /v1/users/{userId}/recommendations", handler.Get)
 	mux.HandleFunc("GET /health", handler.Health)
 
+	// Apply middleware: CORS -> Auth
 	httpSrv := &http.Server{
 		Addr:    ":" + httpPort,
-		Handler: middleware.CORS(mux),
+		Handler: middleware.CORS(middleware.Auth(mux)),
 	}
 	go func() {
 		log.Printf("recommendations HTTP server listening on :%s", httpPort)

@@ -96,6 +96,13 @@ export class KonbiniNaviStack extends cdk.Stack {
       preventUserExistenceErrors: true,
     });
 
+    // Cognito Domain for ALB authentication
+    const userPoolDomain = userPool.addDomain("KonbiniNaviDomain", {
+      cognitoDomain: {
+        domainPrefix: "konbini-navi",
+      },
+    });
+
     // ----------------------------------------------------------------
     // Outputs
     // ----------------------------------------------------------------
@@ -117,11 +124,25 @@ export class KonbiniNaviStack extends cdk.Stack {
     new cdk.CfnOutput(this, "CognitoUserPoolId", {
       value: userPool.userPoolId,
       description: "Cognito User Pool ID",
+      exportName: "KonbiniNaviUserPoolId",
+    });
+
+    new cdk.CfnOutput(this, "CognitoUserPoolArn", {
+      value: userPool.userPoolArn,
+      description: "Cognito User Pool ARN",
+      exportName: "KonbiniNaviUserPoolArn",
     });
 
     new cdk.CfnOutput(this, "CognitoUserPoolClientId", {
       value: userPoolClient.userPoolClientId,
       description: "Cognito User Pool Client ID",
+      exportName: "KonbiniNaviUserPoolClientId",
+    });
+
+    new cdk.CfnOutput(this, "CognitoRegion", {
+      value: this.region,
+      description: "AWS Region",
+      exportName: "KonbiniNaviRegion",
     });
   }
 }
