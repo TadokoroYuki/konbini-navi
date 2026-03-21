@@ -15,6 +15,25 @@ import {
   mockRecommendations,
 } from "./mock-data";
 
+// --- Simple memory cache for product data ---
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+const cache = new Map<string, { data: unknown; timestamp: number }>();
+
+function getCached<T>(key: string): T | undefined {
+  const entry = cache.get(key);
+  if (!entry) return undefined;
+  if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
+    cache.delete(key);
+    return undefined;
+  }
+  return entry.data as T;
+}
+
+function setCache<T>(key: string, data: T): void {
+  cache.set(key, { data, timestamp: Date.now() });
+}
+
 const BASE_URL: string =
   Constants.expoConfig?.extra?.apiUrl ?? "http://localhost:8080/v1";
 
@@ -64,20 +83,25 @@ export interface SearchProductsParams {
 export const searchProducts = async (
   params: SearchProductsParams = {}
 ): Promise<Product[]> => {
-  try {
-    const query = new URLSearchParams();
-    if (params.q) query.set("q", params.q);
-    if (params.brand) query.set("brand", params.brand);
-    if (params.category) query.set("category", params.category);
-    if (params.limit) query.set("limit", String(params.limit));
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.brand) query.set("brand", params.brand);
+  if (params.category) query.set("category", params.category);
+  if (params.limit) query.set("limit", String(params.limit));
+  const qs = query.toString();
+  const cacheKey = `searchProducts:${qs}`;
 
-    const qs = query.toString();
+  const cached = getCached<Product[]>(cacheKey);
+  if (cached) return cached;
+
+  try {
     const result = await request<{ products: Product[] }>(
       `/products${qs ? `?${qs}` : ""}`
     );
+    setCache(cacheKey, result.products);
     return result.products;
   } catch {
-    // Fallback to mock data
+    console.warn("[FALLBACK] searchProducts - using mock data");
     let filtered = [...mockProducts];
     if (params.q) {
       const q = params.q.toLowerCase();
@@ -98,9 +122,16 @@ export const searchProducts = async (
 };
 
 export const getProduct = async (productId: string): Promise<Product> => {
+  const cacheKey = `getProduct:${productId}`;
+  const cached = getCached<Product>(cacheKey);
+  if (cached) return cached;
+
   try {
-    return await request<Product>(`/products/${productId}`);
+    const product = await request<Product>(`/products/${productId}`);
+    setCache(cacheKey, product);
+    return product;
   } catch {
+    console.warn("[FALLBACK] getProduct - using mock data");
     const product = mockProducts.find((p) => p.productId === productId);
     if (!product) throw new Error("商品が見つかりません");
     return product;
@@ -119,6 +150,7 @@ export const listRecords = async (
     );
     return result.records;
   } catch {
+    console.warn("[FALLBACK] listRecords - using mock data");
     return mockRecords.filter((r) => r.date === date);
   }
 };
@@ -127,26 +159,10 @@ export const createRecord = async (
   userId: string,
   data: CreateRecordRequest
 ): Promise<MealRecord> => {
-  try {
-    return await request<MealRecord>(`/users/${userId}/records`, {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  } catch {
-    // Mock: create a local record
-    const product = mockProducts.find((p) => p.productId === data.productId);
-    if (!product) throw new Error("商品が見つかりません");
-    const record: MealRecord = {
-      recordId: `r${Date.now()}`,
-      userId,
-      productId: data.productId,
-      product,
-      date: data.date,
-      mealType: data.mealType,
-      createdAt: new Date().toISOString(),
-    };
-    return record;
-  }
+  return await request<MealRecord>(`/users/${userId}/records`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 };
 
 export const deleteRecord = async (

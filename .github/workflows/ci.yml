@@ -48,6 +48,37 @@ jobs:
         working-directory: apps/api
         run: go test ./...
 
+  admin:
+    name: Admin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: test -f apps/admin/package.json && echo "exists=true" >> $GITHUB_OUTPUT || echo "exists=false" >> $GITHUB_OUTPUT
+      - if: steps.check.outputs.exists == 'true'
+        uses: pnpm/action-setup@v4
+      - if: steps.check.outputs.exists == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - if: steps.check.outputs.exists == 'true'
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        if: steps.check.outputs.exists == 'true'
+        run: pnpm --filter admin build
+
+  docker:
+    name: Docker Build Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: test -f apps/api/Dockerfile && echo "exists=true" >> $GITHUB_OUTPUT || echo "exists=false" >> $GITHUB_OUTPUT
+      - name: Build Docker image (builder stage only)
+        if: steps.check.outputs.exists == 'true'
+        run: docker build --target builder --build-arg SERVICE_NAME=products -f apps/api/Dockerfile apps/api
+
   infra:
     name: Infra
     runs-on: ubuntu-latest
