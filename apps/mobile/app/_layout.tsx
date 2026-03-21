@@ -13,7 +13,7 @@ import {
 
 const HomeHeaderLogo = () => (
   <Image
-    source={require("../assets/mealance-logo.png")}
+    source={require("../assets/logo.png")}
     style={styles.headerLogo}
     resizeMode="contain"
   />
