@@ -22,6 +22,7 @@ import {
   NutritionStatus,
 } from "../lib/types";
 import { getToday } from "../lib/date";
+import { pageLayout } from "../lib/page-layout";
 
 const formatDateStr = (dateStr: string): string => {
   const d = new Date(dateStr + "T00:00:00");
@@ -161,7 +162,10 @@ const HistoryScreen = () => {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.contentContainer}
+      contentContainerStyle={[
+        styles.contentContainer,
+        pageLayout.centeredContent,
+      ]}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }

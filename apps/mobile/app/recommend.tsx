@@ -18,6 +18,7 @@ import {
   STATUS_LABELS,
 } from "../lib/types";
 import { getToday } from "../lib/date";
+import { pageLayout } from "../lib/page-layout";
 
 const getStatusColor = (status: NutritionStatus): string => {
   switch (status) {
@@ -87,7 +88,10 @@ const RecommendScreen = () => {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.contentContainer}
+      contentContainerStyle={[
+        styles.contentContainer,
+        pageLayout.centeredContent,
+      ]}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
