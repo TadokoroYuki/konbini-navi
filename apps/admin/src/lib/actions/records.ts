@@ -87,7 +87,7 @@ export async function updateRecord(
   fetch(
     `${recomURL}/v1/users/${encodeURIComponent(data.user_id)}/recommendations/refresh`,
     { method: "POST" }
-  ).catch(() => {});
+  ).catch((err) => console.error("Failed to refresh recommendation:", err));
 
   return {
     ...r,

@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -27,18 +28,22 @@ func NewGRPCServer(repo *Repository, productClient *ProductClient, recommendatio
 	return &GRPCServer{repo: repo, productClient: productClient, recommendationsURL: recommendationsURL}
 }
 
+var grpcRefreshClient = &http.Client{Timeout: 10 * time.Second}
+
 func (s *GRPCServer) refreshRecommendation(userID string) {
 	if s.recommendationsURL == "" {
 		return
 	}
 	go func() {
-		url := s.recommendationsURL + "/v1/users/" + userID + "/recommendations/refresh"
-		req, err := http.NewRequest("POST", url, nil)
+		refreshURL := s.recommendationsURL + "/v1/users/" + url.PathEscape(userID) + "/recommendations/refresh"
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		req, err := http.NewRequestWithContext(ctx, "POST", refreshURL, nil)
 		if err != nil {
 			log.Printf("failed to create refresh request: %v", err)
 			return
 		}
-		resp, err := http.DefaultClient.Do(req)
+		resp, err := grpcRefreshClient.Do(req)
 		if err != nil {
 			log.Printf("failed to refresh recommendation for %s: %v", userID, err)
 			return

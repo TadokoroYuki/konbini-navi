@@ -9,6 +9,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"sort"
 	"os/signal"
 	"syscall"
 	"time"
@@ -42,8 +43,9 @@ const (
 	nutritionDims = 6
 	categoryDims  = 10
 	totalDims     = nutritionDims + categoryDims
-	alphaWeight   = 0.6 // 栄養不足の重み
-	betaWeight    = 0.4 // 味の好みの重み
+	alphaWeight      = 0.6  // 栄養不足の重み
+	betaWeight       = 0.4  // 味の好みの重み
+	maxProductsLimit = 1000 // 商品取得の上限
 )
 
 func main() {
@@ -94,8 +96,8 @@ func main() {
 			date = time.Now().Format("2006-01-02")
 		}
 
-		// キャッシュ確認: recommendations テーブルから取得
-		cached, err := getCachedRecommendation(r.Context(), db, userID)
+		// キャッシュ確認: recommendations テーブルから取得（date一致時のみ）
+		cached, err := getCachedRecommendation(r.Context(), db, productsClient, userID, date)
 		if err == nil && cached != nil {
 			writeJSON(w, 200, map[string]interface{}{
 				"recommendation": cached,
@@ -193,21 +195,27 @@ type scored struct {
 	score   float64
 }
 
-// getCachedRecommendation は recommendations テーブルからキャッシュを取得する
-func getCachedRecommendation(ctx context.Context, db *sql.DB, userID string) (map[string]interface{}, error) {
+// getCachedRecommendation は recommendations テーブルからキャッシュを取得する（date一致時のみ）
+func getCachedRecommendation(ctx context.Context, db *sql.DB, productsClient productpb.ProductServiceClient, userID, date string) (map[string]interface{}, error) {
 	var productID string
 	var score float64
-	var date string
 	err := db.QueryRowContext(ctx,
-		"SELECT product_id, score, date FROM recommendations WHERE user_id = $1", userID,
-	).Scan(&productID, &score, &date)
+		"SELECT product_id, score FROM recommendations WHERE user_id = $1 AND date = $2", userID, date,
+	).Scan(&productID, &score)
 	if err != nil {
 		return nil, err
 	}
+
+	// product 全体を取得してレスポンス形式を統一
+	resp, err := productsClient.GetProduct(ctx, &productpb.GetProductRequest{ProductId: productID})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get cached product: %w", err)
+	}
+	product := products.FromProtoProduct(resp)
+
 	return map[string]interface{}{
-		"product_id": productID,
-		"score":      score,
-		"date":       date,
+		"product": product,
+		"score":   score,
 	}, nil
 }
 
@@ -244,7 +252,7 @@ func computeRecommendation(
 	summary := nutrition.FromProtoNutritionSummary(summaryResp)
 
 	// 2. 全商品を取得
-	productsResp, err := productsClient.SearchProducts(ctx, &productpb.SearchProductsRequest{Limit: 100})
+	productsResp, err := productsClient.SearchProducts(ctx, &productpb.SearchProductsRequest{Limit: maxProductsLimit})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get products: %w", err)
 	}
@@ -280,15 +288,9 @@ func computeRecommendation(
 	}
 
 	// ソート (降順)
-	for i := 0; i < len(results); i++ {
-		maxIdx := i
-		for j := i + 1; j < len(results); j++ {
-			if results[j].score > results[maxIdx].score {
-				maxIdx = j
-			}
-		}
-		results[i], results[maxIdx] = results[maxIdx], results[i]
-	}
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].score > results[j].score
+	})
 
 	if len(results) == 0 {
 		return nil, nil
@@ -303,17 +305,23 @@ func buildUserVector(summary *model.NutritionSummary, recs []model.Record) []flo
 	vec := make([]float64, totalDims)
 
 	// 栄養不足ベクトル: max(0, target - actual) を target で正規化
-	deficits := [6]float64{
-		math.Max(0, summary.Calories.Target-summary.Calories.Actual),
-		math.Max(0, summary.Protein.Target-summary.Protein.Actual),
-		math.Max(0, summary.Fat.Target-summary.Fat.Actual),
-		math.Max(0, summary.Carbs.Target-summary.Carbs.Actual),
-		0, // fiber (NutritionSummaryに含まれない → 0)
-		0, // salt
+	// NOTE: fiber/salt は NutritionSummary に含まれないため常に 0。
+	// NutritionSummary に追加された場合はここも拡張する。
+	type deficitEntry struct {
+		deficit float64
+		target  float64
+	}
+	entries := [6]deficitEntry{
+		{math.Max(0, summary.Calories.Target-summary.Calories.Actual), summary.Calories.Target},
+		{math.Max(0, summary.Protein.Target-summary.Protein.Actual), summary.Protein.Target},
+		{math.Max(0, summary.Fat.Target-summary.Fat.Actual), summary.Fat.Target},
+		{math.Max(0, summary.Carbs.Target-summary.Carbs.Actual), summary.Carbs.Target},
+		{0, targets[4]}, // fiber: NutritionSummary に未対応
+		{0, targets[5]}, // salt: NutritionSummary に未対応
 	}
 	for i := 0; i < nutritionDims; i++ {
-		if targets[i] > 0 {
-			vec[i] = deficits[i] / targets[i]
+		if entries[i].target > 0 {
+			vec[i] = entries[i].deficit / entries[i].target
 		}
 	}
 

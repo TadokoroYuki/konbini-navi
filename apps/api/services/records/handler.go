@@ -1,10 +1,12 @@
 package records
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/json"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -24,18 +26,22 @@ func NewHandler(repo *Repository, productClient *ProductClient, recommendationsU
 }
 
 // refreshRecommendation は recommendations サービスに再計算を非同期で依頼する
+var refreshClient = &http.Client{Timeout: 10 * time.Second}
+
 func (h *Handler) refreshRecommendation(userID string) {
 	if h.recommendationsURL == "" {
 		return
 	}
 	go func() {
-		url := h.recommendationsURL + "/v1/users/" + userID + "/recommendations/refresh"
-		req, err := http.NewRequest("POST", url, nil)
+		refreshURL := h.recommendationsURL + "/v1/users/" + url.PathEscape(userID) + "/recommendations/refresh"
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		req, err := http.NewRequestWithContext(ctx, "POST", refreshURL, nil)
 		if err != nil {
 			log.Printf("failed to create refresh request: %v", err)
 			return
 		}
-		resp, err := http.DefaultClient.Do(req)
+		resp, err := refreshClient.Do(req)
 		if err != nil {
 			log.Printf("failed to refresh recommendation for %s: %v", userID, err)
 			return
