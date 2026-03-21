@@ -5,10 +5,19 @@ import { AuthProvider, useAuth } from "../hooks/AuthContext";
 import { useEffect } from "react";
 import {
   ActivityIndicator,
+  Image,
   View,
   StyleSheet,
   Text,
 } from "react-native";
+
+const HomeHeaderLogo = () => (
+  <Image
+    source={require("../assets/logo.png")}
+    style={styles.headerLogo}
+    resizeMode="contain"
+  />
+);
 
 const RootLayoutInner = () => {
   const { isLoading, isAuthenticated } = useAuth();
@@ -25,7 +34,7 @@ const RootLayoutInner = () => {
     } else if (isAuthenticated && inAuthGroup) {
       router.replace("/");
     }
-  }, [isLoading, isAuthenticated, segments]);
+  }, [isLoading, isAuthenticated, router, segments]);
 
   if (isLoading) {
     return (
@@ -77,7 +86,7 @@ const RootLayoutInner = () => {
           name="index"
           options={{
             title: "ホーム",
-            headerTitle: "コンビニナビ",
+            headerTitle: () => <HomeHeaderLogo />,
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="home" size={size} color={color} />
             ),
@@ -143,5 +152,9 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: "#666",
+  },
+  headerLogo: {
+    width: 180,
+    height: 42,
   },
 });
