@@ -25,6 +25,8 @@ spec:
         - containerPort: 2526
           name: grpc
         env:
+        - name: ENV
+          value: "production"
         - name: HTTP_PORT
           value: "2525"
         - name: GRPC_PORT
