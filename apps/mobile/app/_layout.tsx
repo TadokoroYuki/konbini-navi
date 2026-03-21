@@ -1,6 +1,5 @@
 import { Tabs, Slot, useRouter, useSegments } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider, useAuth } from "../hooks/AuthContext";
 import { useEffect } from "react";
@@ -125,23 +124,11 @@ const RootLayoutInner = () => {
   );
 };
 
-const RootLayout = () => {
-  const [fontsLoaded] = useFonts(Ionicons.font);
-
-  if (!fontsLoaded) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4CAF50" />
-      </View>
-    );
-  }
-
-  return (
-    <AuthProvider>
-      <RootLayoutInner />
-    </AuthProvider>
-  );
-};
+const RootLayout = () => (
+  <AuthProvider>
+    <RootLayoutInner />
+  </AuthProvider>
+);
 
 export default RootLayout;
 
