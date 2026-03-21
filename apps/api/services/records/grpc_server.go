@@ -3,6 +3,9 @@ package records
 import (
 	"context"
 	"crypto/rand"
+	"log"
+	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -16,18 +19,57 @@ import (
 
 type GRPCServer struct {
 	recordpb.UnimplementedRecordServiceServer
-	repo          *Repository
-	productClient *ProductClient
+	repo               *Repository
+	productClient      *ProductClient
+	recommendationsURL string
 }
 
-func NewGRPCServer(repo *Repository, productClient *ProductClient) *GRPCServer {
-	return &GRPCServer{repo: repo, productClient: productClient}
+func NewGRPCServer(repo *Repository, productClient *ProductClient, recommendationsURL string) *GRPCServer {
+	return &GRPCServer{repo: repo, productClient: productClient, recommendationsURL: recommendationsURL}
+}
+
+var grpcRefreshClient = &http.Client{Timeout: 10 * time.Second}
+
+func (s *GRPCServer) refreshRecommendation(userID string) {
+	if s.recommendationsURL == "" {
+		return
+	}
+	go func() {
+		refreshURL := s.recommendationsURL + "/v1/users/" + url.PathEscape(userID) + "/recommendations/refresh"
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		req, err := http.NewRequestWithContext(ctx, "POST", refreshURL, nil)
+		if err != nil {
+			log.Printf("failed to create refresh request: %v", err)
+			return
+		}
+		resp, err := grpcRefreshClient.Do(req)
+		if err != nil {
+			log.Printf("failed to refresh recommendation for %s: %v", userID, err)
+			return
+		}
+		resp.Body.Close()
+	}()
 }
 
 func (s *GRPCServer) ListRecords(ctx context.Context, req *recordpb.ListRecordsRequest) (*recordpb.ListRecordsResponse, error) {
 	records, err := s.repo.ListByUserAndDate(ctx, req.GetUserId(), req.GetDate())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list records: %v", err)
+	}
+
+	pbRecords := make([]*recordpb.Record, len(records))
+	for i, rec := range records {
+		pbRecords[i] = toProtoRecord(&rec)
+	}
+
+	return &recordpb.ListRecordsResponse{Records: pbRecords}, nil
+}
+
+func (s *GRPCServer) ListAllRecords(ctx context.Context, req *recordpb.ListAllRecordsRequest) (*recordpb.ListRecordsResponse, error) {
+	records, err := s.repo.ListByUserAndDate(ctx, req.GetUserId(), "")
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to list all records: %v", err)
 	}
 
 	pbRecords := make([]*recordpb.Record, len(records))
@@ -61,6 +103,7 @@ func (s *GRPCServer) CreateRecord(ctx context.Context, req *recordpb.CreateRecor
 		return nil, status.Errorf(codes.Internal, "failed to create record: %v", err)
 	}
 
+	s.refreshRecommendation(req.GetUserId())
 	return toProtoRecord(record), nil
 }
 
@@ -68,6 +111,7 @@ func (s *GRPCServer) DeleteRecord(ctx context.Context, req *recordpb.DeleteRecor
 	if err := s.repo.Delete(ctx, req.GetUserId(), req.GetRecordId()); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to delete record: %v", err)
 	}
+	s.refreshRecommendation(req.GetUserId())
 	return &recordpb.Empty{}, nil
 }
 
