@@ -3,19 +3,15 @@
 ## システム全体図
 
 ```
-┌──────────────┐     ┌────────────────┐     ┌──────────────────┐
-│  Expo Mobile │────▶│  API Gateway   │────▶│  Lambda (Go)     │
-│  (React      │     │  (REST)        │     │                  │
-│   Native)    │     └────────────────┘     │  ├─ handler/     │
-└──────────────┘                            │  ├─ service/     │
-                                            │  └─ repository/  │
-                                            └──────┬───────────┘
-                                                   │
-                                            ┌──────▼───────────┐
-                                            │  DynamoDB         │
-                                            │  ├─ products      │
-                                            │  └─ records       │
-                                            └──────────────────┘
+┌──────────────┐     ┌──────────────────────────────────────────────┐     ┌────────────┐
+│  Expo Mobile │────▶│  Go マイクロサービス                           │────▶│ PostgreSQL │
+│  (React      │     │                                              │     │ (15-alpine)│
+│   Native)    │     │  products (:7111)  ◄──gRPC──┐                │     └────────────┘
+└──────────────┘     │  records  (:8810)  ──gRPC──▶ products        │
+                     │  nutrition(:1056)  ──gRPC──▶ records         │
+                     │  recommend(:2525)  ──gRPC──▶ nutrition,      │
+                     │                              products        │
+                     └──────────────────────────────────────────────┘
 ```
 
 ## モノレポ構成
@@ -24,7 +20,8 @@
 konbini-navi/
 ├── apps/
 │   ├── mobile/          # Expo (React Native) + Expo Router
-│   └── api/             # Go バックエンド (Lambda)
+│   ├── api/             # Go マイクロサービス (4サービス)
+│   └── admin/           # Next.js 管理画面 (PostgreSQL CRUD)
 ├── packages/
 │   └── api-schema/      # OpenAPI仕様 + TypeScript型生成
 ├── infra/               # AWS CDK (TypeScript)
@@ -35,15 +32,28 @@ konbini-navi/
 ## 各パッケージの役割
 
 ### apps/mobile
-- **Expo SDK 52 + Expo Router v4** によるモバイルアプリ
+- **Expo SDK 54 + Expo Router v6** によるモバイルアプリ
 - Bottom Tab Navigator で4画面（ホーム/記録/履歴/おすすめ）
 - `api-schema` パッケージの型を使ってAPIクライアントを実装
 
 ### apps/api
-- **Go** による Lambda バックエンド
-- `chi` ルーターで API Gateway proxy integration に対応
+- **Go 1.24** による4つのマイクロサービス
+- 標準 `http.ServeMux` でHTTPルーティング（Go 1.22+ パターン）
+- サービス間通信に **gRPC** を使用
 - Clean Architecture: handler → service → repository の3層分離
-- DynamoDB をデータストアとして使用
+- **PostgreSQL** をデータストアとして使用
+
+#### サービス一覧
+| サービス | HTTP | gRPC | 役割 |
+|----------|------|------|------|
+| products | :7111 | :7112 | 商品検索・詳細 |
+| records | :8810 | :8811 | 食事記録CRUD |
+| nutrition | :1056 | :1057 | 栄養バランス計算 |
+| recommendations | :2525 | - | おすすめ商品提案 |
+
+### apps/admin
+- **Next.js** による管理画面
+- PostgreSQL に対する商品・記録データの CRUD
 
 ### packages/api-schema
 - **OpenAPI 3.0** 仕様定義
@@ -52,26 +62,37 @@ konbini-navi/
 
 ### infra/
 - **AWS CDK (TypeScript)** によるインフラ定義
-- DynamoDB テーブル、API Gateway、Lambda を一括管理
+- VPC、ECR、Cognito を管理
 
 ### data/
-- AI生成したコンビニ商品マスタデータ（50-100件）
-- DynamoDB へのシードスクリプト
+- AI生成したコンビニ商品マスタデータ（60件）
+- PostgreSQL へのシードデータ（Docker起動時にマイグレーションで投入）
 
-## DynamoDB テーブル設計
+## PostgreSQL テーブル設計
 
-### konbini-products
-| キー | 属性 |
-|------|------|
-| PK | `productId` |
-| GSI: `brand-category-index` | PK=`brand`, SK=`category` |
+### products
+| カラム | 型 | 説明 |
+|--------|------|------|
+| id | SERIAL PK | 自動採番 |
+| product_id | VARCHAR(255) UNIQUE | 商品ID |
+| name | VARCHAR(255) | 商品名 |
+| brand | VARCHAR(100) | ブランド |
+| category | VARCHAR(100) | カテゴリ |
+| price | INTEGER | 価格 |
+| calories, protein, fat, carbs, fiber, salt | NUMERIC(10,2) | 栄養素 |
+| image_url | TEXT | 画像URL |
 
-### konbini-records
-| キー | 属性 |
-|------|------|
-| PK | `userId` |
-| SK | `{date}#{ulid}` |
-| GSI: `userId-date-index` | PK=`userId`, SK=`date` |
+### records
+| カラム | 型 | 説明 |
+|--------|------|------|
+| id | SERIAL PK | 自動採番 |
+| user_id | VARCHAR(255) | ユーザーID |
+| record_id | VARCHAR(255) UNIQUE | 記録ID (ULID) |
+| product_id | VARCHAR(255) FK | 商品ID |
+| date | DATE | 日付 |
+| meal_type | VARCHAR(50) | 食事タイプ |
+
+**インデックス**: brand, category, brand+category, user_id, date, user_id+date
 
 ## 栄養バランス計算ロジック
 
