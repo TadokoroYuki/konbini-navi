@@ -63,6 +63,7 @@ konbini-navi/
 ### infra/
 - **AWS CDK (TypeScript)** によるインフラ定義
 - VPC、ECR、Cognito を管理
+- 注: EKS クラスタや CI/CD パイプラインは eksctl / CDK 別スタックで構築済み
 
 ### data/
 - AI生成したコンビニ商品マスタデータ（60件）
@@ -93,6 +94,45 @@ konbini-navi/
 | meal_type | VARCHAR(50) | 食事タイプ |
 
 **インデックス**: brand, category, brand+category, user_id, date, user_id+date
+
+## AWS 本番環境 (ap-northeast-1)
+
+```
+┌──────────┐     ┌──────────────┐     ┌─────────────────────────────┐
+│  GitHub  │────▶│  CodePipeline│────▶│  CodeBuild                  │
+│          │     │              │     │  (Docker build + ECR push)  │
+└──────────┘     └──────────────┘     └──────────┬──────────────────┘
+                                                  │
+                                                  ▼
+┌──────────┐     ┌──────────────┐     ┌──────────────────┐
+│  Expo    │────▶│  EKS         │◄────│  ArgoCD          │
+│  Mobile  │     │  (k8s 1.31)  │     │  Image Updater   │
+└──────────┘     │  t3.medium x2│     └──────────────────┘
+                 └──────────────┘
+```
+
+### リソース一覧
+
+| リソース | 名前 | 詳細 |
+|----------|------|------|
+| EKS | `konbini-navi-cluster` | Kubernetes 1.31, t3.medium x2ノード |
+| VPC | `10.0.0.0/16` | 2AZ, Public/Private subnet, NAT Gateway |
+| ECR | `konbini-navi-api` | Docker イメージリポジトリ |
+| CodePipeline | `konbini-navi-pipeline` | GitHub → CodeBuild → ECR |
+| CodeBuild | `konbini-navi-build` | Docker ビルド & プッシュ |
+| ArgoCD | `ArgoCDImageUpdaterStack` | GitOps によるデプロイ |
+
+### CDK スタック構成
+
+| スタック | リージョン | 内容 |
+|----------|-----------|------|
+| `KonbiniNaviStack` | ap-northeast-1 | VPC, ECR, Cognito |
+| `KonbiniNaviCiCdStack` | ap-northeast-1 | CodePipeline, CodeBuild, GitHub接続 |
+| `ArgoCDImageUpdaterStack` | ap-northeast-1 | ArgoCD Image Updater |
+| `eksctl-konbini-navi-cluster-*` | ap-northeast-1 | EKS クラスタ (eksctl管理) |
+
+> **注意**: us-east-1 にも旧アーキテクチャ (Lambda + API Gateway + DynamoDB) の残骸が存在するが、
+> 現在は未使用。削除予定。
 
 ## 栄養バランス計算ロジック
 

@@ -8,7 +8,7 @@ const USER_POOL_ID =
 const CLIENT_ID =
   Constants.expoConfig?.extra?.cognitoClientId ?? "";
 const REGION =
-  Constants.expoConfig?.extra?.cognitoRegion ?? "us-east-1";
+  Constants.expoConfig?.extra?.cognitoRegion ?? "ap-northeast-1";
 
 const COGNITO_URL = `https://cognito-idp.${REGION}.amazonaws.com/`;
 
