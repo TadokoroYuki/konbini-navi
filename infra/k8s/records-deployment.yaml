@@ -25,6 +25,8 @@ spec:
         - containerPort: 8811
           name: grpc
         env:
+        - name: ENV
+          value: "production"
         - name: HTTP_PORT
           value: "8810"
         - name: GRPC_PORT

@@ -1,0 +1,271 @@
+<mxfile host="65bd71144e">
+    <diagram id="k8s-architecture" name="K8s Architecture">
+        <mxGraphModel dx="1403" dy="607" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="main-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="40" width="1320" height="820" as="geometry"/>
+                </mxCell>
+                <mxCell id="k8s-icon" value="" style="shape=mxgraph.kubernetes.icon;prIcon=master;fillColor=#326CE5;strokeColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="60" y="55" width="60" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="k8s-title" value="Kubernetes" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="130" y="65" width="180" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="user-icon" value="User" style="shape=actor;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=14;" parent="1" vertex="1">
+                    <mxGeometry x="80" y="200" width="60" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="alb-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8C4FFF;strokeColor=none;strokeWidth=2;sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.application_load_balancer;" parent="1" vertex="1">
+                    <mxGeometry x="250" y="140" width="126.67" height="95" as="geometry"/>
+                </mxCell>
+                <mxCell id="alb-label" value="AWS ALB&#xa;Ingress" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+                    <mxGeometry x="240" y="240" width="160" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow-user-alb" value="" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#6c8ebf;" parent="1" source="user-icon" target="alb-box" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="160" y="240" as="sourcePoint"/>
+                        <mxPoint x="210" y="190" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow-user-alb-label" value="HTTP" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;fontStyle=1;" parent="arrow-user-alb" vertex="1" connectable="0">
+                    <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+                        <mxPoint x="5" y="-10" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="services-container" value="マイクロサービス" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;verticalAlign=top;fontSize=16;fontStyle=1;align=center;" parent="1" vertex="1">
+                    <mxGeometry x="200" y="340" width="800" height="280" as="geometry"/>
+                </mxCell>
+                <mxCell id="products-pod-icon" value="" style="shape=mxgraph.kubernetes.icon;prIcon=pod;fillColor=#326CE5;strokeColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="275" y="415" width="50" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="products-pod" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2875E2;strokeColor=#ffffff;strokeWidth=2;aspect=fixed;sketch=0;dashed=0;whitespace=wrap;verticalLabelPosition=bottom;verticalAlign=top;points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];shape=mxgraph.kubernetes.icon2;kubernetesLabel=1;prIcon=pod;" parent="1" vertex="1">
+                    <mxGeometry x="240" y="400" width="120" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="products-label" value="Products" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+                    <mxGeometry x="240" y="490" width="120" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="products-port" value="Go :7111/:7112" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="240" y="520" width="120" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="records-pod-icon" value="" style="shape=mxgraph.kubernetes.icon;prIcon=pod;fillColor=#326CE5;strokeColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="435" y="415" width="50" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="records-pod" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2875E2;strokeColor=#ffffff;strokeWidth=2;aspect=fixed;sketch=0;dashed=0;whitespace=wrap;verticalLabelPosition=bottom;verticalAlign=top;points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];shape=mxgraph.kubernetes.icon2;kubernetesLabel=1;prIcon=pod;" parent="1" vertex="1">
+                    <mxGeometry x="400" y="400" width="120" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="records-label" value="Records" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+                    <mxGeometry x="400" y="490" width="120" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="records-port" value="Go :8810/:8811" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="400" y="520" width="120" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="nutrition-pod-icon" value="" style="shape=mxgraph.kubernetes.icon;prIcon=pod;fillColor=#326CE5;strokeColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="595" y="415" width="50" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="nutrition-pod" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2875E2;strokeColor=#ffffff;strokeWidth=2;aspect=fixed;sketch=0;dashed=0;whitespace=wrap;verticalLabelPosition=bottom;verticalAlign=top;points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];shape=mxgraph.kubernetes.icon2;kubernetesLabel=1;prIcon=pod;" parent="1" vertex="1">
+                    <mxGeometry x="560" y="400" width="120" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="nutrition-label" value="Nutrition" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+                    <mxGeometry x="560" y="490" width="120" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="nutrition-port" value="Go :1056/:1057" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="560" y="520" width="120" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="recommendations-pod-icon" value="" style="shape=mxgraph.kubernetes.icon;prIcon=pod;fillColor=#326CE5;strokeColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="775" y="415" width="50" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="recommendations-pod" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2875E2;strokeColor=#ffffff;strokeWidth=2;aspect=fixed;sketch=0;dashed=0;whitespace=wrap;verticalLabelPosition=bottom;verticalAlign=top;points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];shape=mxgraph.kubernetes.icon2;kubernetesLabel=1;prIcon=pod;" parent="1" vertex="1">
+                    <mxGeometry x="720" y="400" width="160" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="recommendations-label" value="Recommendations" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+                    <mxGeometry x="720" y="490" width="160" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="recommendations-port" value="Go :2525" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="720" y="520" width="160" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="grpc-label" value="gRPC" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#6c8ebf;" parent="1" vertex="1">
+                    <mxGeometry x="530" y="370" width="60" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow-alb-products" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;strokeColor=#82b366;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" target="products-pod" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="300" y="280" as="sourcePoint"/>
+                        <mxPoint x="300" y="380" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="300" y="280"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow-alb-products-label" value="/v1/products" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fillColor=#ffffff;" parent="arrow-alb-products" vertex="1" connectable="0">
+                    <mxGeometry x="-0.3" y="1" relative="1" as="geometry">
+                        <mxPoint x="-1" y="-12" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow-alb-records" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;strokeColor=#82b366;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" target="records-pod" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="300" y="280" as="sourcePoint"/>
+                        <mxPoint x="460" y="380" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="300" y="290"/>
+                            <mxPoint x="460" y="290"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow-alb-records-label" value="/v1/users/*/records" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fillColor=#ffffff;" parent="arrow-alb-records" vertex="1" connectable="0">
+                    <mxGeometry x="-0.3" y="1" relative="1" as="geometry">
+                        <mxPoint x="69" y="21" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow-alb-nutrition" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;strokeColor=#82b366;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" target="nutrition-pod" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="300" y="280" as="sourcePoint"/>
+                        <mxPoint x="620" y="380" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="300" y="280"/>
+                            <mxPoint x="300" y="290"/>
+                            <mxPoint x="620" y="290"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow-alb-nutrition-label" value="/v1/users/*/nutrition" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fillColor=#ffffff;" parent="arrow-alb-nutrition" vertex="1" connectable="0">
+                    <mxGeometry x="-0.3" y="1" relative="1" as="geometry">
+                        <mxPoint x="189" y="21" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow-alb-recommendations" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;strokeColor=#82b366;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" target="recommendations-pod" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="340" y="290" as="sourcePoint"/>
+                        <mxPoint x="800" y="380" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow-alb-recommendations-label" value="/v1/users/*/recommendations" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fillColor=#ffffff;" parent="arrow-alb-recommendations" vertex="1" connectable="0">
+                    <mxGeometry x="-0.3" y="1" relative="1" as="geometry">
+                        <mxPoint x="271" y="21" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow-nutrition-records" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#6c8ebf;dashed=1;dashPattern=8 4;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="nutrition-pod" target="records-pod" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="540" y="450" as="sourcePoint"/>
+                        <mxPoint x="540" y="450" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow-recommendations-nutrition" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#6c8ebf;dashed=1;dashPattern=8 4;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="recommendations-pod" target="nutrition-pod" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="700" y="450" as="sourcePoint"/>
+                        <mxPoint x="700" y="450" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow-recommendations-products" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#6c8ebf;dashed=1;dashPattern=8 4;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="recommendations-pod" target="products-pod" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="550" as="sourcePoint"/>
+                        <mxPoint x="300" y="550" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="800" y="560"/>
+                            <mxPoint x="300" y="560"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="postgres-icon" value="" style="shape=image;html=1;verticalAlign=top;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;imageAspect=0;aspect=fixed;image=https://cdn4.iconfinder.com/data/icons/logos-3/181/PostgreSQL-128.png" vertex="1" parent="1">
+                    <mxGeometry x="430" y="695" width="60" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="postgres-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#336791;strokeColor=#ffffff;strokeWidth=2;shape=image;labelBackgroundColor=default;verticalAlign=top;verticalLabelPosition=bottom;aspect=fixed;points=[];image=img/lib/azure2/databases/Azure_Database_PostgreSQL_Server.svg;" parent="1" vertex="1">
+                    <mxGeometry x="400" y="680" width="120" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="postgres-label" value="PostgreSQL" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="400" y="755" width="120" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow-products-db" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#999999;dashed=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" parent="1" source="products-pod" target="postgres-box" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="270" y="560" as="sourcePoint"/>
+                        <mxPoint x="430" y="660" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow-records-db" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#999999;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="records-pod" target="postgres-box" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="460" y="560" as="sourcePoint"/>
+                        <mxPoint x="460" y="660" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow-nutrition-db" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#999999;dashed=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" parent="1" source="nutrition-pod" target="postgres-box" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="590" y="560" as="sourcePoint"/>
+                        <mxPoint x="490" y="660" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow-recommendations-db" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#999999;dashed=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;" parent="1" source="recommendations-pod" target="postgres-box" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="760" y="560" as="sourcePoint"/>
+                        <mxPoint x="520" y="660" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="gitops-container" value="GitOps / CI/CD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;verticalAlign=top;fontSize=16;fontStyle=1;align=center;" parent="1" vertex="1">
+                    <mxGeometry x="1080" y="160" width="240" height="500" as="geometry"/>
+                </mxCell>
+                <mxCell id="argocd-icon" value="" style="shape=image;html=1;verticalAlign=top;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;imageAspect=0;aspect=fixed;image=https://cdn.worldvectorlogo.com/logos/argo.svg" vertex="1" parent="1">
+                    <mxGeometry x="1170" y="235" width="60" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="argocd-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e67e22;strokeColor=#ffffff;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="1120" y="220" width="160" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="argocd-label" value="ArgoCD" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1">
+                    <mxGeometry x="1120" y="280" width="160" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="ecr-icon" value="" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#ED7100;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.ecr_registry;" vertex="1" parent="1">
+                    <mxGeometry x="1175" y="405" width="50" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="ecr-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ED7100;strokeColor=#ffffff;strokeWidth=2;sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ecr;" parent="1" vertex="1">
+                    <mxGeometry x="1120" y="390" width="160" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="ecr-label" value="Amazon ECR" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1">
+                    <mxGeometry x="1120" y="465" width="160" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="github-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#181717;strokeColor=#ffffff;strokeWidth=2;dashed=0;outlineConnect=0;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;shape=mxgraph.weblogos.github;gradientColor=#DFDEDE;" parent="1" vertex="1">
+                    <mxGeometry x="1160" y="540" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="2" value="" style="edgeStyle=none;html=1;" edge="1" parent="1" source="github-label" target="github-box">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="github-label" value="GitHub" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1">
+                    <mxGeometry x="1120" y="620" width="160" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow-argocd-services" value="" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#e67e22;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="argocd-box" target="services-container" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="1080" y="260" as="sourcePoint"/>
+                        <mxPoint x="1020" y="480" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="1060" y="260"/>
+                            <mxPoint x="1060" y="480"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow-argocd-services-label" value="Sync" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;fontStyle=1;fontColor=#e67e22;" parent="arrow-argocd-services" vertex="1" connectable="0">
+                    <mxGeometry x="0.2" y="2" relative="1" as="geometry">
+                        <mxPoint x="-10" y="-8" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow-github-argocd" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#181717;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="github-box" target="argocd-box" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="1200" y="540" as="sourcePoint"/>
+                        <mxPoint x="1200" y="320" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow-github-argocd-label" value="Fetch" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;fontStyle=1;" parent="arrow-github-argocd" vertex="1" connectable="0">
+                    <mxGeometry x="-0.3" y="2" relative="1" as="geometry">
+                        <mxPoint x="-28" y="11" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow-ecr-argocd" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#FF9900;dashed=1;dashPattern=8 4;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="ecr-box" target="argocd-box" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="1200" y="370" as="sourcePoint"/>
+                        <mxPoint x="1200" y="320" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow-ecr-argocd-label" value="Image&#xa;Updater" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1;fontColor=#FF9900;" parent="arrow-ecr-argocd" vertex="1" connectable="0">
+                    <mxGeometry x="-0.3" y="2" relative="1" as="geometry">
+                        <mxPoint x="30" y="10" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

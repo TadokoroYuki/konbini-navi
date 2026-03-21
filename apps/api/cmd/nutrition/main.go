@@ -70,9 +70,10 @@ func main() {
 		mux.HandleFunc("PUT /v1/users/{userId}/profile", profileHandler.Upsert)
 	}
 
+	// Apply middleware: CORS -> Auth
 	httpSrv := &http.Server{
 		Addr:    ":" + httpPort,
-		Handler: middleware.CORS(mux),
+		Handler: middleware.CORS(middleware.Auth(mux)),
 	}
 	go func() {
 		log.Printf("nutrition HTTP server listening on :%s", httpPort)
